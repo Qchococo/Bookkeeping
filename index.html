@@ -186,9 +186,12 @@
   .tag-kind{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;}
   .tag-kind.shared{color:var(--accent);background:#eaf0fd;border:1px solid #c3d2f7;}
   .tag-kind.self{color:var(--amber);background:#fbf4e2;border:1px solid #ecdcb3;}
-  .selfrow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px;}
-  .selfrow:last-child{border-bottom:none;}
-  .settle .arrow{font-size:22px;font-weight:800;color:var(--accent);}
+  .burden-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);}
+  .burden-row:last-child{border-bottom:none;}
+  .burden-row .bname{font-size:16px;font-weight:700;}
+  .burden-row .bsub{font-size:12px;color:var(--sub);margin-top:2px;}
+  .burden-row .bamt{font-size:22px;font-weight:800;color:var(--accent);white-space:nowrap;}
+  .settle .arrow{font-size:20px;font-weight:800;color:var(--accent);}
   /* keypad */
   .kp-backdrop{position:fixed;inset:0;background:rgba(10,22,51,.35);z-index:55;opacity:0;pointer-events:none;transition:.2s;}
   .kp-backdrop.show{opacity:1;pointer-events:auto;}
@@ -309,18 +312,15 @@
   </div>
 
   <div class="card">
-    <label class="fl" style="margin-bottom:10px;">🤝 公用分帳（兩人各付一半）</label>
-    <div class="settle" id="settleBox">尚無分帳資料</div>
-    <div class="small-note" id="settleHint" style="margin-top:10px;"></div>
+    <label class="fl" style="margin-bottom:10px;">👤 各自這期實際負擔</label>
+    <div id="burdenBox"></div>
+    <hr class="sep">
+    <div class="settle" id="settleBox">—</div>
+    <div class="small-note" id="settleHint" style="margin-top:8px;"></div>
     <div class="toggle-row" style="margin-top:14px;">
-      <span>把「自己」的也一起算進分帳</span>
+      <span>「自己」的也一起均分（變成兩人完全均攤）</span>
       <label class="switch"><input type="checkbox" id="incPersonal"><span class="sl"></span></label>
     </div>
-  </div>
-
-  <div class="card">
-    <label class="fl" style="margin-bottom:10px;">👤 各自的「自己」花費（不分帳）</label>
-    <div id="selfBox"><div class="muted">尚無資料</div></div>
   </div>
 
   <div class="card" id="budgetCard" style="display:none;">
@@ -726,44 +726,40 @@ function scopeTagHTML(el){
 
 /* ---------- calculations ---------- */
 function inSplit(r){return r.kind==="公用"||(includePersonal&&r.kind==="自己");}
+function burdenRow(name,burden,own,per,inc){
+  var sub=inc?"全部均分":("自己 "+money(own)+" ＋ 公用分攤 "+money(per));
+  return "<div class='burden-row'><div><div class='bname'>"+esc(name)+"</div><div class='bsub'>"+sub+"</div></div><div class='bamt'>"+money(burden)+"</div></div>";
+}
 function renderSummary(){
   scopeTagHTML($("sumScope"));
   var A=cfg.people[0], B=cfg.people[1];
-  var total=0,shared=0,self=0,selfA=0,selfB=0,aShared=0,bShared=0;
+  var total=0,shared=0,self=0,selfA=0,selfB=0,paidA=0,paidB=0;
   scopedItems().forEach(function(r){
     total+=r.base;
     if(r.kind==="自己"){self+=r.base;if(r.payer===A)selfA+=r.base;else if(r.payer===B)selfB+=r.base;}
-    else{shared+=r.base;if(r.payer===A)aShared+=r.base;else if(r.payer===B)bShared+=r.base;}
+    else shared+=r.base;
+    if(r.payer===A)paidA+=r.base;else if(r.payer===B)paidB+=r.base;  /* 已付：全部（含自己＋公用） */
   });
+  /* 上方總覽分條 */
   $("s-total").textContent=money(total);
-  $("s-sharedTotal").textContent=money(shared);
-  $("s-selfTotal").textContent=money(self);
+  $("s-sharedTotal").textContent=money(shared);$("s-selfTotal").textContent=money(self);
   var tt=(shared+self)||1;
   $("s-barShared").style.width=(shared/tt*100).toFixed(1)+"%";
   $("s-barSelf").style.width=(self/tt*100).toFixed(1)+"%";
 
-  /* 分帳池：公用全分；若打開開關，自己的也納入 */
-  var splitTotal=shared, aPaid=aShared, bPaid=bShared;
-  if(includePersonal){splitTotal+=self;aPaid+=selfA;bPaid+=selfB;}
-  var per=splitTotal/2;
-  var box=$("settleBox"), hint=$("settleHint");
-  if(splitTotal<=0){
-    box.className="settle";box.innerHTML="這個範圍還沒有公用支出";
-    hint.innerHTML="「公用」＝兩人一起花、要平分；「自己」＝各付各的、不算進分帳。";
-  }else{
-    var aBal=aPaid-per, diff=Math.abs(Math.round(aBal));
-    var ower=aBal>0?B:A, owee=aBal>0?A:B;
-    if(diff===0){box.className="settle even";box.innerHTML="🎉 剛好打平，<span class='big'>不用補款</span>";}
-    else{box.className="settle";box.innerHTML="<span class='arrow'>"+esc(ower)+" → "+esc(owee)+"</span>　<span class='big'>"+money(diff)+"</span>";}
-    hint.innerHTML="公用共 "+money(splitTotal)+"，每人應分 "+money(per)+"。"+esc(A)+" 已付 "+money(aPaid)+"、"+esc(B)+" 已付 "+money(bPaid)+"。";
-  }
+  /* 實際負擔：自己的自付 ＋ 公用平分；開關打開＝全部均分 */
+  var pool=shared+(includePersonal?self:0), per=pool/2;
+  var ownA=includePersonal?0:selfA, ownB=includePersonal?0:selfB;
+  var burdenA=ownA+per, burdenB=ownB+per;
+  $("burdenBox").innerHTML=burdenRow(A,burdenA,ownA,per,includePersonal)+burdenRow(B,burdenB,ownB,per,includePersonal);
 
-  /* 各自的「自己」花費 */
-  var sb=$("selfBox");
-  if(!self){sb.innerHTML="<div class='muted'>這個範圍沒有「自己」的花費</div>";}
-  else{sb.innerHTML=
-    "<div class='selfrow'><span><i class='dot self' style='display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--amber);margin-right:7px;'></i>"+esc(A)+"</span><b>"+money(selfA)+"</b></div>"+
-    "<div class='selfrow'><span><i class='dot self' style='display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--amber);margin-right:7px;'></i>"+esc(B)+"</span><b>"+money(selfB)+"</b></div>";}
+  /* 結算：已付 vs 應負擔 */
+  var box=$("settleBox"), hint=$("settleHint");
+  if(total<=0){box.className="settle";box.innerHTML="這個範圍還沒有資料";hint.innerHTML="";return;}
+  var balA=Math.round(paidA-burdenA), diff=Math.abs(balA);
+  if(diff===0){box.className="settle even";box.innerHTML="🎉 剛好打平，<span class='big'>不用補款</span>";}
+  else{var ower=balA<0?A:B, owee=balA<0?B:A;box.className="settle";box.innerHTML="<span class='arrow'>"+esc(ower)+" → "+esc(owee)+"</span>　<span class='big'>"+money(diff)+"</span>";}
+  hint.innerHTML="已付："+esc(A)+" "+money(paidA)+" · "+esc(B)+" "+money(paidB)+"。"+(includePersonal?"（所有花費兩人均分）":"（公用平分、自己各付各的）");
 }
 
 function pieSVG(slices,total){
