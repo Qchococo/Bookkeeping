@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#002FA7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>記帳</title>
+<style>
+  :root{
+    /* 克萊因藍 (International Klein Blue) + 白 淺色主題 */
+    --bg:#eef1f8;--card:#ffffff;--card2:#f1f4fb;--line:#dde3ef;
+    --txt:#0a1633;--sub:#7a85a3;--accent:#002FA7;--accent2:#1f4fd0;
+    --green:#0f9d58;--red:#e5484d;--amber:#c98a16;--alt:#002FA7;--jpy:#002FA7;--radius:16px;
+    --shadow:0 1px 3px rgba(10,22,51,.06),0 1px 2px rgba(10,22,51,.04);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC",sans-serif;font-size:16px;line-height:1.4;}
+  body{padding-bottom:92px;}
+  .wrap{max-width:560px;margin:0 auto;padding:0 14px;}
+  header{position:sticky;top:0;z-index:30;background:var(--accent);box-shadow:0 2px 10px rgba(10,22,51,.18);}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;}
+  header h1{font-size:18px;margin:0;font-weight:800;color:#fff;letter-spacing:.5px;}
+  header .rate{font-size:11px;color:rgba(255,255,255,.82);text-align:right;line-height:1.3;}
+  /* 旅程切換列 */
+  .tripbar-wrap{position:relative;z-index:1;background:var(--card);border-bottom:1px solid var(--line);}
+  .tripbar{display:flex;gap:7px;overflow-x:auto;padding:10px 14px;max-width:560px;margin:0 auto;-webkit-overflow-scrolling:touch;}
+  .tripbar::-webkit-scrollbar{display:none;}
+  .tchip{flex:0 0 auto;background:var(--card2);border:1px solid var(--line);color:var(--sub);
+    border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;font-weight:600;}
+  .tchip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .tchip.trip.on{background:var(--alt);border-color:var(--alt);}
+  .tchip.add{color:var(--accent);border-style:dashed;background:#fff;}
+  .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--card);border-top:1px solid var(--line);display:flex;box-shadow:0 -1px 6px rgba(10,22,51,.05);}
+  .tabbar button{flex:1;background:none;border:none;color:var(--sub);padding:9px 0 calc(9px + env(safe-area-inset-bottom));font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+  .tabbar button .ic{font-size:19px;line-height:1;}
+  .tabbar button.on{color:var(--accent);font-weight:700;}
+  section.page{display:none;padding-top:14px;}
+  section.page.on{display:block;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px;box-shadow:var(--shadow);}
+  label.fl{display:block;font-size:13px;color:var(--sub);margin:0 0 6px;font-weight:600;}
+  input[type=text],input[type=number],input[type=url],input[type=date],textarea,select{
+    width:100%;background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:12px;font-size:16px;font-family:inherit;}
+  textarea{resize:vertical;min-height:42px;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,47,167,.12);}
+  .row{margin-bottom:12px;}.row:last-child{margin-bottom:0;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .grid2>div{min-width:0;}
+  input[type=date]{min-width:0;}
+  .seg{display:flex;flex-wrap:wrap;gap:6px;}
+  .seg button{flex:1;min-width:auto;background:var(--card2);border:1px solid var(--line);color:var(--sub);border-radius:10px;padding:11px 6px;font-size:14px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .seg.wrapy button{flex:0 1 auto;min-width:calc(33.33% - 4px);}
+  .seg.day button{flex:0 1 auto;min-width:calc(25% - 5px);}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .amt-field{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:16px 14px;cursor:pointer;min-height:58px;}
+  .amt-field.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,47,167,.12);}
+  .amt-field .cur-sym{font-size:20px;color:var(--accent);font-weight:800;}
+  .amt-field .amt-disp{font-size:26px;font-weight:800;color:var(--txt);flex:1;word-break:break-all;}
+  .amt-field .amt-ph{font-size:16px;color:var(--sub);flex:1;}
+  .amt-field.has-val .amt-ph{display:none;}.amt-field:not(.has-val) .amt-disp{display:none;}
+  .amt-calc{font-size:13px;color:var(--accent);font-weight:600;margin-top:6px;min-height:18px;}
+  .thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .thumbs .th{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--card2);}
+  .thumbs .th img{width:100%;height:100%;object-fit:cover;display:block;}
+  .thumbs .th .x{position:absolute;top:-1px;right:-1px;width:20px;height:20px;background:rgba(10,22,51,.7);color:#fff;border:none;border-radius:0 0 0 8px;font-size:13px;line-height:20px;cursor:pointer;padding:0;}
+  .item .rcpts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+  .item .rcpts a{display:block;width:48px;height:48px;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:var(--card2);}
+  .item .rcpts a img{width:100%;height:100%;object-fit:cover;}
+  .item .rcpts a.fallback{display:flex;align-items:center;justify-content:center;font-size:18px;text-decoration:none;color:var(--accent);}
+  .dqrow{display:flex;gap:7px;margin-top:8px;}
+  .dqrow button{flex:0 0 auto;background:var(--card2);border:1px solid var(--line);color:var(--accent);border-radius:16px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .dqrow button.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .quick-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;}
+  .quick-chips button{background:rgba(0,47,167,.06);border:1px solid rgba(0,47,167,.18);color:var(--accent);border-radius:18px;padding:7px 13px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:600;}
+  .btn{display:block;width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:15px;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;box-shadow:0 2px 8px rgba(0,47,167,.25);}
+  .btn:active{opacity:.9;transform:translateY(1px);}
+  .btn.sec{background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:15px;padding:12px;font-weight:600;box-shadow:none;}
+  .btn.ghost{background:none;border:1px solid var(--line);color:var(--sub);box-shadow:none;}
+  .sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;}
+  .stat .k{font-size:12px;color:var(--sub);}
+  .stat .v{font-size:21px;font-weight:800;margin-top:3px;}
+  .stat.wide{grid-column:1/3;background:var(--accent);border-color:var(--accent);}
+  .stat.wide .k{color:rgba(255,255,255,.8);}
+  .stat.wide .v{color:#fff;}
+  .settle{font-size:15px;line-height:1.6;}
+  .settle .big{font-size:22px;font-weight:800;color:var(--accent);}
+  .settle.even .big{color:var(--green);}
+  .scope-tag{font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px;display:inline-block;margin-bottom:10px;}
+  .scope-tag.home{background:#e6f4ec;color:#0c7a44;border:1px solid #bfe3cd;}
+  .scope-tag.trip{background:#e4ebfc;color:var(--accent);border:1px solid #c3d2f7;}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;font-size:14px;}
+  .switch{position:relative;width:48px;height:28px;flex:0 0 auto;}
+  .switch input{display:none;}
+  .switch .sl{position:absolute;inset:0;background:#cfd6e6;border:1px solid var(--line);border-radius:20px;transition:.2s;}
+  .switch .sl:before{content:"";position:absolute;width:22px;height:22px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+  .switch input:checked + .sl{background:var(--accent);border-color:var(--accent);}
+  .switch input:checked + .sl:before{transform:translateX(20px);background:#fff;}
+  .cat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px;}
+  .cat-row:last-child{border-bottom:none;}
+  .cat-row .pct{color:var(--sub);font-size:12px;margin-left:8px;}
+  .cat-row .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle;}
+  .cat-pie{display:flex;justify-content:center;margin-bottom:6px;}
+  .mrow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px;}
+  .mrow:last-child{border-bottom:none;}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:9px;box-shadow:var(--shadow);}
+  .item .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .item .nm{font-weight:600;font-size:15px;}
+  .item .amt{font-weight:800;font-size:15px;text-align:right;white-space:nowrap;color:var(--txt);}
+  .item .amt small{display:block;font-size:11px;color:var(--sub);font-weight:400;}
+  .item .meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .chip{font-size:11px;padding:3px 8px;border-radius:20px;background:var(--card2);border:1px solid var(--line);color:var(--sub);}
+  .chip.self{color:var(--amber);border-color:#ecdcb3;background:#fbf4e2;}
+  .chip.shared{color:var(--accent2);border-color:#c3d2f7;background:#eaf0fd;}
+  .chip.day{color:var(--accent);border-color:#c3d2f7;background:#eaf0fd;font-weight:600;}
+  .item .act{display:flex;gap:8px;margin-top:9px;}
+  .item .act button{flex:1;background:none;border:1px solid var(--line);color:var(--sub);border-radius:8px;padding:7px;font-size:13px;cursor:pointer;font-family:inherit;}
+  .item .act button.del{color:var(--red);border-color:#f3c6c8;}
+  .filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;-webkit-overflow-scrolling:touch;}
+  .filters select{width:auto;flex:0 0 auto;padding:8px 10px;font-size:14px;}
+  .date-filter-bar{display:flex;align-items:center;justify-content:space-between;background:#eaf0fd;border:1px solid var(--accent);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:14px;color:var(--accent);font-weight:600;}
+  .date-filter-bar button{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;font-family:inherit;font-weight:700;}
+  .empty{text-align:center;color:var(--sub);padding:40px 20px;font-size:14px;}
+  .muted{color:var(--sub);font-size:13px;}
+  .small-note{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.5;}
+  .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:#0a1633;color:#fff;padding:11px 20px;border-radius:24px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:100;max-width:90%;box-shadow:0 6px 20px rgba(10,22,51,.3);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  hr.sep{border:none;border-top:1px solid var(--line);margin:14px 0;}
+  /* calendar */
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .cal-title{font-size:18px;font-weight:800;}
+  .cal-nav{background:var(--card2);border:1px solid var(--line);color:var(--accent);width:40px;height:40px;border-radius:10px;font-size:22px;cursor:pointer;font-family:inherit;line-height:1;font-weight:700;}
+  .cal-week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;color:var(--sub);margin-bottom:6px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-cell{min-height:50px;border-radius:8px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:13px;border:1px solid transparent;}
+  .cal-cell .cd{color:var(--sub);font-size:12px;}
+  .cal-cell.has{background:#eaf0fd;border-color:#d4e0fa;cursor:pointer;}
+  .cal-cell.has .cd{color:var(--txt);font-weight:600;}
+  .cal-cell .ca{font-size:10px;color:var(--accent);font-weight:700;line-height:1.1;text-align:center;}
+  .cal-cell.today{border-color:var(--accent);background:#dbe6fc;}
+  .cal-cell.today .cd{color:var(--accent);font-weight:800;}
+  .cal-total{text-align:right;font-size:15px;font-weight:800;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);}
+  .bud-line{display:flex;justify-content:space-between;font-size:14px;margin-bottom:7px;}
+  .bud-bar{height:12px;background:var(--card2);border-radius:8px;overflow:hidden;border:1px solid var(--line);}
+  .bud-fill{height:100%;background:var(--accent);transition:width .3s;}
+  .bud-fill.warn{background:var(--amber);}.bud-fill.over{background:var(--red);}
+  .bud-sub{font-size:13px;color:var(--sub);margin-top:8px;}
+  /* trip list in settings */
+  .triprow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);}
+  .triprow:last-child{border-bottom:none;}
+  .triprow .tl{font-size:15px;font-weight:700;}
+  .triprow .ts{font-size:12px;color:var(--sub);margin-top:2px;}
+  .triprow .tb{display:flex;gap:6px;}
+  .triprow .tb button{background:var(--card2);border:1px solid var(--line);color:var(--sub);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;font-family:inherit;}
+  .triprow .tb button.del{color:var(--red);border-color:#f3c6c8;}
+  /* keypad */
+  .kp-backdrop{position:fixed;inset:0;background:rgba(10,22,51,.35);z-index:55;opacity:0;pointer-events:none;transition:.2s;}
+  .kp-backdrop.show{opacity:1;pointer-events:auto;}
+  .keypad{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);border-top:1px solid var(--line);border-radius:20px 20px 0 0;padding:12px 10px calc(12px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-width:560px;margin:0 auto;box-shadow:0 -8px 30px rgba(10,22,51,.18);}
+  .keypad.show{transform:translateY(0);}
+  .kp-head{display:flex;align-items:baseline;justify-content:space-between;padding:6px 8px 12px;gap:10px;}
+  .kp-expr-txt{font-size:28px;font-weight:800;word-break:break-all;color:var(--txt);}
+  .kp-prev{font-size:14px;color:var(--accent);font-weight:600;white-space:nowrap;}
+  .kp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .kp-key{background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:23px;font-weight:700;border-radius:12px;padding:16px 0;cursor:pointer;font-family:inherit;user-select:none;}
+  .kp-key:active{background:#dfe6f5;}.kp-key.op{color:var(--accent);font-weight:800;}
+  .kp-foot{display:flex;gap:8px;margin-top:8px;}
+  .kp-clear{flex:1;background:var(--card2);border:1px solid var(--line);color:var(--sub);font-size:16px;font-weight:600;border-radius:12px;padding:15px;cursor:pointer;font-family:inherit;}
+  .kp-done{flex:2;background:var(--accent);border:none;color:#fff;font-size:18px;font-weight:700;border-radius:12px;padding:15px;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,47,167,.25);}
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(10,22,51,.4);z-index:65;opacity:0;pointer-events:none;transition:.2s;}
+  .modal-backdrop.show{opacity:1;pointer-events:auto;}
+  .modal{position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--card);border-top:1px solid var(--line);border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-width:560px;margin:0 auto;box-shadow:0 -8px 30px rgba(10,22,51,.2);max-height:88vh;overflow-y:auto;}
+  .modal.show{transform:translateY(0);}
+  .modal h3{margin:0 0 14px;font-size:18px;color:var(--accent);}
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <h1>💰 記帳</h1>
+  <span class="rate" id="rateLabel"></span>
+</div></header>
+
+<!-- 旅程切換列 -->
+<div class="tripbar-wrap"><div class="tripbar" id="tripBar"></div></div>
+
+<div class="wrap">
+
+<!-- 記帳 -->
+<section class="page on" id="page-add">
+  <div class="card">
+    <div class="row">
+      <label class="fl">項目</label>
+      <input type="text" id="f-item" placeholder="例如：午餐、咖啡、交通" autocomplete="off">
+      <div class="quick-chips" id="quickChips"></div>
+    </div>
+    <div class="row">
+      <label class="fl">金額（點一下用計算機，可加減乘除）</label>
+      <div class="amt-field" id="f-amountField" tabindex="0">
+        <span class="cur-sym" id="amtCurSym"></span>
+        <span class="amt-disp" id="amtDisp"></span>
+        <span class="amt-ph">點這裡輸入金額</span>
+      </div>
+      <input type="hidden" id="f-amount" value="">
+      <div class="amt-calc" id="amtCalc"></div>
+    </div>
+    <div class="grid2 row">
+      <div><label class="fl">幣別</label><div class="seg" id="seg-cur"></div></div>
+      <div><label class="fl">付款人</label><div class="seg" id="seg-payer"></div></div>
+    </div>
+    <div class="row"><label class="fl">付款方式</label><div class="seg wrapy" id="seg-method"></div></div>
+    <div class="row"><label class="fl">類別</label><div class="seg wrapy" id="seg-cat"></div></div>
+    <div class="row">
+      <label class="fl">日期</label>
+      <input type="date" id="f-date">
+      <div class="dqrow" id="dateQuick"><button type="button" data-d="0">今天</button><button type="button" data-d="-1">昨天</button></div>
+    </div>
+    <div class="row"><label class="fl" id="kindLabel">屬於</label><div class="seg" id="seg-kind"></div></div>
+    <div class="row" id="dayRow" style="display:none;">
+      <label class="fl">旅程第幾天（選日期會自動算）</label>
+      <div class="seg day" id="seg-day"></div>
+    </div>
+    <div class="row"><label class="fl">備註（選填）</label><textarea id="f-note" placeholder="選填"></textarea></div>
+    <div class="row">
+      <label class="fl">收據照片（選填，最多 5 張）</label>
+      <button type="button" class="btn sec" id="addPhotoBtn">📷 拍照 / 選照片</button>
+      <input type="file" id="f-photo" accept="image/*" multiple style="display:none;">
+      <div class="thumbs" id="photoThumbs"></div>
+    </div>
+    <button class="btn" id="saveBtn">＋ 新增這筆</button>
+    <button class="btn sec" id="cancelEditBtn" style="display:none;margin-top:8px;">取消編輯</button>
+  </div>
+</section>
+
+<!-- 月曆 -->
+<section class="page" id="page-cal">
+  <div class="card">
+    <div id="calScope" class="scope-tag home"></div>
+    <div class="cal-head"><button class="cal-nav" id="calPrev">‹</button><div class="cal-title" id="calTitle">—</div><button class="cal-nav" id="calNext">›</button></div>
+    <div class="cal-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-total" id="calTotal"></div>
+    <div class="small-note">點有金額的日期看當天明細。</div>
+  </div>
+</section>
+
+<!-- 明細 -->
+<section class="page" id="page-list">
+  <div id="dateFilterBar" class="date-filter-bar" style="display:none;"></div>
+  <div class="filters">
+    <select id="flt-day" style="display:none;"><option value="">全部 Day</option></select>
+    <select id="flt-cat"><option value="">全部類別</option></select>
+    <select id="flt-payer"><option value="">全部付款人</option></select>
+    <select id="flt-kind"><option value="">全部</option><option value="公用">公用</option><option value="自己">自己</option></select>
+  </div>
+  <div id="listBox"></div>
+</section>
+
+<!-- 結算 -->
+<section class="page" id="page-sum">
+  <div class="card">
+    <div id="sumScope" class="scope-tag home"></div>
+    <div class="sum-grid">
+      <div class="stat wide"><div class="k">總花費</div><div class="v" id="s-total">—</div></div>
+      <div class="stat"><div class="k">分帳總額</div><div class="v" id="s-splitTotal" style="font-size:18px;">—</div></div>
+      <div class="stat"><div class="k">每人應分擔</div><div class="v" id="s-perPerson" style="font-size:18px;">—</div></div>
+      <div class="stat"><div class="k" id="s-aName">A 已付</div><div class="v" id="s-aPaid" style="font-size:18px;color:#1f4fd0;">—</div></div>
+      <div class="stat"><div class="k" id="s-bName">B 已付</div><div class="v" id="s-bPaid" style="font-size:18px;color:#d6336c;">—</div></div>
+    </div>
+    <hr class="sep">
+    <div class="toggle-row">
+      <span>個人（自己）項目也納入分帳</span>
+      <label class="switch"><input type="checkbox" id="incPersonal"><span class="sl"></span></label>
+    </div>
+    <div class="settle" id="settleBox">尚無分帳資料</div>
+    <div class="small-note" id="settleHint" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="card" id="budgetCard" style="display:none;">
+    <label class="fl" style="margin-bottom:10px;" id="budgetTitle">預算</label>
+    <div id="budgetBox"></div>
+  </div>
+
+  <div class="card">
+    <label class="fl" style="margin-bottom:10px;">各類別小計</label>
+    <div id="catPie" class="cat-pie"></div>
+    <div id="catBox"><div class="muted">尚無資料</div></div>
+  </div>
+
+  <div class="card">
+    <label class="fl" style="margin-bottom:10px;">付款人統計</label>
+    <div id="payerBox"><div class="muted">尚無資料</div></div>
+  </div>
+
+  <div class="card">
+    <label class="fl" style="margin-bottom:10px;">付款方式統計</label>
+    <div id="methodBox"><div class="muted">尚無資料</div></div>
+  </div>
+
+  <div class="card">
+    <label class="fl" style="margin-bottom:10px;">匯出（目前檢視範圍）</label>
+    <button class="btn sec" id="copyBtn">📋 複製明細（貼進 Google 試算表）</button>
+    <button class="btn sec" id="csvBtn" style="margin-top:8px;">⬇️ 下載 CSV</button>
+  </div>
+</section>
+
+<!-- 設定 -->
+<section class="page" id="page-set">
+  <div class="card">
+    <label class="fl" style="margin-bottom:10px;">✈️ 旅程管理</label>
+    <div id="tripList"><div class="muted">還沒有旅程。新增一趟後，頂部就會出現切換鈕。</div></div>
+    <button class="btn sec" id="addTripBtn" style="margin-top:10px;">＋ 新增旅程</button>
+    <div class="small-note">旅程模式下：自動算第幾天、套用該趟外幣與預算、分帳只算這趟。日常與每趟旅程的帳互不混到。</div>
+  </div>
+  <div class="card">
+    <div class="row"><label class="fl">付款人（兩人，逗號分隔）</label><input type="text" id="set-people" placeholder="J,Q"></div>
+    <div class="row"><label class="fl">基準幣別（總額用這個算）</label><input type="text" id="set-base" placeholder="TWD"></div>
+    <div class="row"><label class="fl">幣別清單（逗號分隔，含基準）</label><input type="text" id="set-curs" placeholder="TWD,JPY"></div>
+    <div class="row"><label class="fl">手動匯率（離線備援，一行一個「幣別=每1單位換基準」）</label><textarea id="set-manual" placeholder="JPY=0.21"></textarea>
+      <div class="small-note" id="rateSrc"></div></div>
+    <div class="row"><label class="fl">類別（逗號分隔）</label><input type="text" id="set-cats" placeholder="餐飲,交通,購物"></div>
+    <div class="row"><label class="fl">付款方式（逗號分隔）</label><input type="text" id="set-methods" placeholder="現金,信用卡,行動支付,其他"></div>
+    <button class="btn sec" id="fetchRateBtn">🔄 抓即時匯率</button>
+  </div>
+  <div class="card">
+    <div class="grid2 row">
+      <div><label class="fl">日常總預算</label><input type="number" id="set-budget" step="100" placeholder="不填=不限"></div>
+      <div><label class="fl">日常每日預算</label><input type="number" id="set-budget-daily" step="100" placeholder="不填=不限"></div>
+    </div>
+    <div class="row"><label class="fl">常用項目（一行一個，可寫「名稱,類別」）</label><textarea id="set-quick"></textarea></div>
+    <div class="row"><label class="fl">Google Drive 收據資料夾連結</label><input type="url" id="set-drive" placeholder="https://drive.google.com/..."></div>
+    <button class="btn sec" id="goReceipt" style="margin-bottom:8px;">📂 開啟收據資料夾（瀏覽全部）</button>
+    <button class="btn" id="saveSetBtn">儲存設定</button>
+  </div>
+  <div class="card">
+    <div class="small-note" id="syncNote"></div>
+    <button class="btn sec" id="reloadBtn" style="margin-top:8px;">↻ 重新整理資料</button>
+  </div>
+</section>
+
+</div>
+
+<!-- 鍵盤 -->
+<div class="kp-backdrop" id="kpBackdrop"></div>
+<div class="keypad" id="keypad">
+  <div class="kp-head"><div><span id="kpExpr" class="kp-expr-txt">0</span></div><div class="kp-prev" id="kpPrev"></div></div>
+  <div class="kp-grid">
+    <button class="kp-key" data-k="7">7</button><button class="kp-key" data-k="8">8</button><button class="kp-key" data-k="9">9</button><button class="kp-key op" data-k="DEL">⌫</button>
+    <button class="kp-key" data-k="4">4</button><button class="kp-key" data-k="5">5</button><button class="kp-key" data-k="6">6</button><button class="kp-key op" data-k="÷">÷</button>
+    <button class="kp-key" data-k="1">1</button><button class="kp-key" data-k="2">2</button><button class="kp-key" data-k="3">3</button><button class="kp-key op" data-k="×">×</button>
+    <button class="kp-key" data-k=".">.</button><button class="kp-key" data-k="0">0</button><button class="kp-key op" data-k="-">−</button><button class="kp-key op" data-k="+">＋</button>
+  </div>
+  <div class="kp-foot"><button class="kp-clear" data-k="C">清除</button><button class="kp-done" data-k="DONE">完成</button></div>
+</div>
+
+<!-- 旅程 modal -->
+<div class="modal-backdrop" id="tripModalBack"></div>
+<div class="modal" id="tripModal">
+  <h3 id="tripModalTitle">新增旅程</h3>
+  <div class="row"><label class="fl">旅程名稱</label><input type="text" id="t-name" placeholder="例如：京都 2026 春"></div>
+  <div class="grid2 row">
+    <div><label class="fl">開始日（Day1）</label><input type="date" id="t-start"></div>
+    <div><label class="fl">結束日（選填）</label><input type="date" id="t-end"></div>
+  </div>
+  <div class="row"><label class="fl">主要幣別（記帳預設帶入）</label><select id="t-cur"></select></div>
+  <div class="grid2 row">
+    <div><label class="fl">旅程總預算（基準幣）</label><input type="number" id="t-budget" step="100" placeholder="不填=不限"></div>
+    <div><label class="fl">每日預算（基準幣）</label><input type="number" id="t-budget-daily" step="100" placeholder="不填=不限"></div>
+  </div>
+  <button class="btn" id="tripSaveBtn">儲存旅程</button>
+  <button class="btn ghost del" id="tripDeleteBtn" style="margin-top:8px;display:none;color:var(--red);border-color:#f3c6c8;">刪除這趟旅程</button>
+  <button class="btn sec" id="tripCancelBtn" style="margin-top:8px;">取消</button>
+</div>
+
+<nav class="tabbar">
+  <button data-tab="page-add" class="on"><span class="ic">➕</span>記帳</button>
+  <button data-tab="page-cal"><span class="ic">📅</span>月曆</button>
+  <button data-tab="page-list"><span class="ic">📋</span>明細</button>
+  <button data-tab="page-sum"><span class="ic">🧮</span>結算</button>
+  <button data-tab="page-set"><span class="ic">⚙️</span>設定</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ---------- data layer: Apps Script if available, else localStorage ---------- */
+/* 部署「記帳_API_Code.gs」後，把結尾 /exec 的網址貼進下面這行引號裡： */
+var API_URL = "PASTE_API_URL_HERE";
+var USE_GAS = !!(API_URL && API_URL.indexOf("PASTE")<0);
+function apiCall(action,payload,usePost){
+  if(usePost){
+    return fetch(API_URL,{method:"POST",body:JSON.stringify({action:action,payload:payload})}).then(function(r){return r.json();});
+  }
+  var u=API_URL+(API_URL.indexOf("?")<0?"?":"&")+"action="+encodeURIComponent(action)+"&t="+Date.now();
+  if(payload!=null&&payload!==undefined)u+="&payload="+encodeURIComponent(JSON.stringify(payload));
+  return fetch(u,{cache:"no-store"}).then(function(r){return r.json();});
+}
+function gas(fn,arg){
+  if(!USE_GAS)return Promise.resolve(localGas(fn,arg));
+  var p=(fn==="uploadReceipt")?apiCall(fn,arg,true):apiCall(fn,arg,false);
+  return p.then(function(j){
+    if(j&&j.error)throw new Error(j.error);
+    if(fn==="getData")return j;
+    return (j&&("result" in j))?j.result:j;
+  });
+}
+function localGas(fn,arg){
+  var IT="genledger_items",CF="genledger_cfg";
+  var items=JSON.parse(localStorage.getItem(IT)||"[]");
+  if(fn==="getData")return {items:items,config:JSON.parse(localStorage.getItem(CF)||"{}")};
+  if(fn==="addEntry"){items.push(arg);localStorage.setItem(IT,JSON.stringify(items));return true;}
+  if(fn==="updateEntry"){var i=items.findIndex(function(x){return x.id===arg.id;});if(i>=0)items[i]=arg;localStorage.setItem(IT,JSON.stringify(items));return true;}
+  if(fn==="deleteEntry"){items=items.filter(function(x){return x.id!==arg;});localStorage.setItem(IT,JSON.stringify(items));return true;}
+  if(fn==="saveConfig"){localStorage.setItem(CF,JSON.stringify(arg));return true;}
+  if(fn==="uploadReceipt"){return {id:"local",url:"data:"+(arg.mime||"image/jpeg")+";base64,"+arg.dataBase64};}
+}
+
+/* ---------- defaults / state ---------- */
+var DEF={
+  people:["J","Q"], base:"TWD", currencies:["TWD","JPY"],
+  categories:["餐飲","交通","購物","娛樂","住宿","生活","其他"],
+  methods:["現金","信用卡","行動支付","其他"],
+  manualRates:{JPY:0.21}, budgetTotal:0, budgetDaily:0,
+  quickItems:["午餐,餐飲","晚餐,餐飲","咖啡,餐飲","交通,交通","日用品,生活"],
+  drive:"", trips:[]
+};
+var cfg=JSON.parse(JSON.stringify(DEF));
+var state={items:[], editId:null};
+var rateMap={}, rateTime=0, rateOK=false;
+var RATE_API="https://open.er-api.com/v6/latest/";
+var listDateFilter="", includePersonal=false, calY=null, calM=null;
+var pendingPhotos=[], formReceipts=[], saving=false;
+var activeTrip=localStorage.getItem("genledger_activeTrip")||"";  /* ""=日常 */
+var tripEditId=null;
+var SYM={TWD:"NT$",JPY:"¥",USD:"$",EUR:"€",KRW:"₩",CNY:"¥",HKD:"HK$",THB:"฿",GBP:"£",SGD:"S$",AUD:"A$",VND:"₫",MYR:"RM"};
+/* 類別配色（白底克萊因藍系，第一色為 IKB） */
+var PALETTE=["#002FA7","#1f4fd0","#4f86e3","#0f9d58","#c98a16","#d6336c","#7048e8","#0ca5b0","#e8590c","#868e96"];
+/* 類別圖示（天天記帳風格，找不到就不顯示） */
+var CAT_ICON={"餐飲":"🍜","飲食":"🍜","早餐":"🥐","午餐":"🍱","晚餐":"🍚","咖啡":"☕","飲料":"🧋","零食":"🍪",
+  "交通":"🚇","油錢":"⛽","停車":"🅿️","購物":"🛍️","日用品":"🧴","生活":"🧴","娛樂":"🎮","旅遊":"✈️","住宿":"🏨",
+  "醫療":"💊","保健":"💊","教育":"📚","學習":"📖","訂閱":"📺","通訊":"📱","水電":"💡","房租":"🏠","房貸":"🏠",
+  "寵物":"🐾","美容":"💅","美妝":"💄","服飾":"👗","運動":"🏃","健身":"🏋️","禮物":"🎁","紅包":"🧧","孝親":"👵",
+  "保險":"🛡️","稅金":"🧾","投資":"📈","捐款":"🤝","菸酒":"🍷","3C":"💻","家居":"🛋️","其他":"📦"};
+function catIcon(c){return CAT_ICON[c]||"";}
+
+/* ---------- helpers ---------- */
+function $(id){return document.getElementById(id);}
+function pad(n){return (n<10?"0":"")+n;}
+function ymd(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function shiftYmd(off){var d=new Date();d.setDate(d.getDate()+(+off||0));return ymd(d);}
+function syncDateQuick(){var bs=$("dateQuick").querySelectorAll("button"),v=$("f-date").value;for(var i=0;i<bs.length;i++)bs[i].classList.toggle("on",shiftYmd(+bs[i].getAttribute("data-d"))===v);}
+function sym(c){return SYM[c]||(c+" ");}
+function money(n){return sym(cfg.base)+Math.round(n).toLocaleString("en-US");}
+function ntShort(n){n=Math.round(n);if(n>=100000)return Math.round(n/1000)+"k";if(n>=10000)return (n/1000).toFixed(1)+"k";return n.toLocaleString("en-US");}
+function esc(s){return (""+s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function toast(m){var t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove("show");},1900);}
+function catColor(c){var i=cfg.categories.indexOf(c);return PALETTE[(i<0?9:i)%PALETTE.length];}
+function evalAmount(str){var s=(""+str).replace(/[，,]/g,"").replace(/\s+/g,"");if(s==="")return null;if(!/^[0-9+\-*/.()]+$/.test(s))return null;try{var v=Function('"use strict";return ('+s+')')();if(typeof v!=="number"||!isFinite(v))return null;return v;}catch(e){return null;}}
+/* 去掉算式尾端還沒打完的運算子或小數點，例如 "500+"、"500." → "500"（計算機式容錯） */
+function cleanExpr(s){return (""+s).replace(/[+\-*/.]+$/,"");}
+
+/* base per 1 unit of currency c */
+function rateFor(c){if(c===cfg.base)return 1;if(rateOK&&rateMap[c])return rateMap[c];if(cfg.manualRates&&cfg.manualRates[c])return +cfg.manualRates[c];return 1;}
+
+/* ---------- trips / scope ---------- */
+function tripById(id){return (cfg.trips||[]).find(function(t){return t.id===id;});}
+function activeTripObj(){return activeTrip?tripById(activeTrip):null;}
+function inScope(r){return (r.trip||"")===(activeTrip||"");}
+function scopedItems(){return state.items.filter(inScope);}
+function tripDays(t){
+  if(t&&t.start&&t.end){var a=new Date(t.start+"T00:00:00"),b=new Date(t.end+"T00:00:00");var n=Math.round((b-a)/86400000)+1;if(n>0&&n<=90)return n;}
+  return 10;
+}
+function autoDay(dateStr,t){
+  if(!t||!t.start||!dateStr)return null;
+  var a=new Date(t.start+"T00:00:00"),b=new Date(dateStr+"T00:00:00");
+  var diff=Math.round((b-a)/86400000), n=tripDays(t);
+  if(diff>=0&&diff<n)return "Day"+(diff+1);
+  return "全程";
+}
+function dayValues(t){var n=tripDays(t),v=[];for(var i=1;i<=n;i++)v.push("Day"+i);v.push("全程");return v;}
+
+function renderTripBar(){
+  var bar=$("tripBar");
+  var html="<button class='tchip"+(activeTrip===""?" on":"")+"' data-t=''>🏠 日常</button>";
+  (cfg.trips||[]).forEach(function(t){
+    html+="<button class='tchip trip"+(activeTrip===t.id?" on":"")+"' data-t='"+esc(t.id)+"'>✈️ "+esc(t.name)+"</button>";
+  });
+  html+="<button class='tchip add' data-add='1'>＋ 旅程</button>";
+  bar.innerHTML=html;
+}
+function setActiveTrip(id){
+  activeTrip=id||"";
+  localStorage.setItem("genledger_activeTrip",activeTrip);
+  listDateFilter="";
+  renderTripBar();updateModeUI();clearForm();renderAll();
+}
+function updateModeUI(){
+  var t=activeTripObj();
+  $("dayRow").style.display=t?"block":"none";
+  $("flt-day").style.display=t?"block":"none";
+  $("kindLabel").textContent=t?"分帳":"屬於";
+}
+
+/* ---------- segmented controls ---------- */
+function renderSeg(id,values,current){
+  var el=$(id);
+  el.innerHTML=values.map(function(v){return "<button data-v='"+esc(v)+"'"+(v===current?" class='on'":"")+">"+esc(v)+"</button>";}).join("");
+}
+function segValue(id){var b=$(id).querySelector("button.on");return b?b.getAttribute("data-v"):null;}
+function setSeg(id,val){var bs=$(id).querySelectorAll("button");for(var i=0;i<bs.length;i++)bs[i].classList.toggle("on",bs[i].getAttribute("data-v")===val);if(!$(id).querySelector("button.on")&&bs[0])bs[0].classList.add("on");}
+function bindSeg(id,cb){$(id).addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var bs=$(id).querySelectorAll("button");for(var i=0;i<bs.length;i++)bs[i].classList.remove("on");b.classList.add("on");if(cb)cb();});}
+
+function renderCatSeg(current){
+  $("seg-cat").innerHTML=cfg.categories.map(function(v){var ic=catIcon(v);
+    return "<button data-v='"+esc(v)+"'"+(v===current?" class='on'":"")+">"+(ic?ic+" ":"")+esc(v)+"</button>";}).join("");
+}
+function renderFormSegs(){
+  renderSeg("seg-cur",cfg.currencies,cfg.currencies[0]);
+  renderSeg("seg-payer",cfg.people,cfg.people[0]);
+  renderSeg("seg-method",cfg.methods,cfg.methods[0]);
+  renderCatSeg(cfg.categories[0]);
+  renderSeg("seg-kind",["公用","自己"],"公用");
+}
+
+/* ---------- amount field + keypad ---------- */
+function prettyExpr(s){return (""+s).replace(/\*/g,"×").replace(/\//g,"÷");}
+function updateAmtCalc(){
+  var raw=$("f-amount").value, cur=segValue("seg-cur")||cfg.currencies[0];
+  $("amtCurSym").textContent=sym(cur);
+  var fld=$("f-amountField");
+  if(raw){fld.classList.add("has-val");$("amtDisp").textContent=prettyExpr(raw);}else{fld.classList.remove("has-val");$("amtDisp").textContent="";}
+  if($("kpExpr"))$("kpExpr").textContent=raw?prettyExpr(raw):"0";
+  var v=evalAmount(raw), box=$("amtCalc"), prev=$("kpPrev");
+  if(v==null&&raw)v=evalAmount(cleanExpr(raw));  /* 打到一半的運算子先忽略，不要嚇人 */
+  if(v==null){box.textContent=(raw&&cleanExpr(raw))?"⚠️ 算式看不懂":"";box.style.color="var(--red)";if(prev)prev.textContent="";return;}
+  box.style.color="var(--accent)";
+  var base=v*rateFor(cur);
+  box.textContent=(cur===cfg.base)?("= "+money(v)):("= "+sym(cur)+Math.round(v).toLocaleString("en-US")+"　≈ "+money(base));
+  if(prev)prev.textContent=(cur===cfg.base)?money(v):"≈ "+money(base);
+}
+function openKeypad(){$("keypad").classList.add("show");$("kpBackdrop").classList.add("show");$("f-amountField").classList.add("active");updateAmtCalc();}
+function closeKeypad(){$("keypad").classList.remove("show");$("kpBackdrop").classList.remove("show");$("f-amountField").classList.remove("active");}
+function keyPress(k){
+  var inp=$("f-amount"),v=inp.value,map={"×":"*","÷":"/","-":"-","+":"+"};
+  if(k==="C"){inp.value="";updateAmtCalc();return;}
+  if(k==="DEL"){inp.value=v.slice(0,-1);updateAmtCalc();return;}
+  if(k==="DONE"){var c=cleanExpr(v),r=evalAmount(c);if(c&&r==null){toast("算式有誤");return;}if(r!=null)inp.value=String(Math.round(r*100)/100);updateAmtCalc();closeKeypad();return;}
+  if(k in map){var op=map[k];if(v===""){if(k==="-"){inp.value="-";updateAmtCalc();}return;}var last=v.slice(-1);if("+-*/".indexOf(last)>=0)v=v.slice(0,-1);inp.value=v+op;}
+  else if(k==="."){var seg=v.split(/[+\-*/]/).pop();if(seg.indexOf(".")>=0)return;inp.value=(v===""?"0":v)+".";}
+  else{inp.value=v+k;}
+  updateAmtCalc();
+}
+
+/* ---------- quick items ---------- */
+function renderQuickChips(){
+  var box=$("quickChips");
+  box.innerHTML=(cfg.quickItems||[]).map(function(q,i){return "<button type='button' data-i='"+i+"'>"+esc((""+q).split(",")[0].trim())+"</button>";}).join("");
+}
+function applyQuick(i){var q=cfg.quickItems[i];if(!q)return;var p=(""+q).split(",");$("f-item").value=p[0].trim();if(p[1]&&cfg.categories.indexOf(p[1].trim())>=0)setSeg("seg-cat",p[1].trim());openKeypad();}
+
+/* ---------- 收據照片 ---------- */
+function readResize(file){
+  return new Promise(function(res){
+    var fr=new FileReader();
+    fr.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var max=1280,w=img.width,h=img.height;
+        if(w>max||h>max){if(w>=h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;}}
+        var cv=document.createElement("canvas");cv.width=w;cv.height=h;
+        cv.getContext("2d").drawImage(img,0,0,w,h);
+        var url=cv.toDataURL("image/jpeg",0.8);
+        res({name:(file.name||"receipt")+".jpg",mime:"image/jpeg",dataBase64:url.split(",")[1],previewUrl:url});
+      };
+      img.onerror=function(){res(null);};
+      img.src=fr.result;
+    };
+    fr.onerror=function(){res(null);};
+    fr.readAsDataURL(file);
+  });
+}
+function receiptName(rec,idx){
+  var safe=function(s){return (""+s).replace(/[\\/:*?"<>|.]/g,"").replace(/\s+/g,"").slice(0,16);};
+  return rec.date+"_"+safe(rec.item)+"_"+Math.round(rec.amount)+rec.currency+"_"+safe(rec.payer)+"_"+(""+rec.id).slice(-4)+(idx?("-"+(idx+1)):"")+".jpg";
+}
+function onPhotoPick(files){
+  var room=5-(pendingPhotos.length+formReceipts.length);
+  if(room<=0){toast("最多 5 張");return;}
+  var list=Array.prototype.slice.call(files,0,room);
+  Promise.all(list.map(readResize)).then(function(arr){
+    arr.forEach(function(p){if(p)pendingPhotos.push(p);});
+    renderThumbs();
+  });
+}
+function renderThumbs(){
+  var box=$("photoThumbs"),html="";
+  formReceipts.forEach(function(r,i){
+    var src=r.url&&r.url.indexOf("data:")===0?r.url:(r.id&&r.id!=="local"?"https://drive.google.com/thumbnail?id="+r.id+"&sz=w120":r.url);
+    html+="<div class='th'><img src='"+src+"' onerror=\"this.src='';this.parentNode.style.background='#f1f4fb';\"><button class='x' onclick='rmReceipt("+i+")'>✕</button></div>";
+  });
+  pendingPhotos.forEach(function(p,i){
+    html+="<div class='th'><img src='"+p.previewUrl+"'><button class='x' onclick='rmPending("+i+")'>✕</button></div>";
+  });
+  box.innerHTML=html;
+}
+function rmPending(i){pendingPhotos.splice(i,1);renderThumbs();}
+function rmReceipt(i){formReceipts.splice(i,1);renderThumbs();}
+
+/* ---------- add / edit ---------- */
+function clearForm(){
+  var t=activeTripObj();
+  $("f-item").value="";$("f-amount").value="";$("f-note").value="";$("f-date").value=ymd(new Date());
+  setSeg("seg-cur",(t&&t.cur)?t.cur:cfg.currencies[0]);
+  setSeg("seg-payer",cfg.people[0]);setSeg("seg-method",cfg.methods[0]);setSeg("seg-cat",cfg.categories[0]);setSeg("seg-kind","公用");
+  if(t){renderSeg("seg-day",dayValues(t),"Day1");var ad=autoDay($("f-date").value,t);if(ad)setSeg("seg-day",ad);}
+  updateAmtCalc();closeKeypad();state.editId=null;$("saveBtn").textContent="＋ 新增這筆";$("cancelEditBtn").style.display="none";
+  pendingPhotos=[];formReceipts=[];renderThumbs();syncDateQuick();
+}
+function findItem(id){return state.items.find(function(x){return x.id===id;});}
+function saveEntry(){
+  if(saving)return;
+  var item=$("f-item").value.trim(), amt=evalAmount($("f-amount").value);
+  if(!item){toast("請填項目");return;}
+  if(amt==null||amt<=0){toast("金額不正確");return;}
+  var t=activeTripObj();
+  var cur=segValue("seg-cur"), ru=rateFor(cur);
+  var old=state.editId?findItem(state.editId):null;
+  var editing=state.editId;
+  var rec={
+    id:editing||("e"+Date.now()+Math.random().toString(36).slice(2,6)),
+    date:$("f-date").value||ymd(new Date()), item:item,
+    amount:Math.round(amt*100)/100, currency:cur, base:Math.round(amt*ru*100)/100, rateUsed:ru,
+    payer:segValue("seg-payer"), method:segValue("seg-method"), category:segValue("seg-cat"),
+    kind:segValue("seg-kind"), note:$("f-note").value.trim(), ts:old?old.ts:Date.now(), receipts:[],
+    trip:(old?(old.trip||""):activeTrip), day:(t?(segValue("seg-day")||""):"")
+  };
+  saving=true;
+  var toUpload=pendingPhotos.slice(), existing=formReceipts.slice();
+  var p=Promise.resolve();
+  if(toUpload.length){toast("上傳收據中…");$("saveBtn").textContent="上傳中…";}
+  toUpload.forEach(function(ph,idx){
+    p=p.then(function(){return gas("uploadReceipt",{name:receiptName(rec,idx),mime:ph.mime,dataBase64:ph.dataBase64,month:(rec.date||"").slice(0,7)}).then(function(res){if(res&&res.id)existing.push(res);});});
+  });
+  p.catch(function(){toast("⚠️ 部分收據上傳失敗");}).then(function(){
+    rec.receipts=existing;
+    if(editing){var i=state.items.findIndex(function(x){return x.id===editing;});state.items[i]=rec;gas("updateEntry",rec).catch(syncErr);toast("已更新");}
+    else{state.items.unshift(rec);gas("addEntry",rec).catch(syncErr);toast("已新增 ✓");}
+    saving=false;clearForm();renderAll();
+  });
+}
+function editEntry(id){
+  var r=findItem(id);if(!r)return;
+  /* 編輯時若該筆屬於別的範圍，先切過去 */
+  if((r.trip||"")!==(activeTrip||"")){setActiveTrip(r.trip||"");}
+  var t=activeTripObj();
+  $("f-item").value=r.item;$("f-amount").value=r.amount;$("f-note").value=r.note||"";$("f-date").value=r.date||ymd(new Date(r.ts||Date.now()));
+  setSeg("seg-cur",r.currency);setSeg("seg-payer",r.payer);setSeg("seg-method",r.method);setSeg("seg-cat",r.category);setSeg("seg-kind",r.kind||"公用");
+  if(t){renderSeg("seg-day",dayValues(t),"Day1");setSeg("seg-day",r.day||"Day1");}
+  pendingPhotos=[];formReceipts=(r.receipts&&r.receipts.slice)?r.receipts.slice():[];renderThumbs();
+  state.editId=id;$("saveBtn").textContent="✓ 儲存修改";$("cancelEditBtn").style.display="block";updateAmtCalc();switchTab("page-add");window.scrollTo(0,0);
+}
+function delEntry(id){if(!confirm("確定刪除這筆？"))return;state.items=state.items.filter(function(x){return x.id!==id;});gas("deleteEntry",id).catch(syncErr);renderAll();toast("已刪除");}
+function syncErr(){toast("⚠️ 雲端同步失敗，請檢查連線");}
+
+/* ---------- scope tags ---------- */
+function scopeTagHTML(el){
+  var t=activeTripObj();
+  el.className="scope-tag "+(t?"trip":"home");
+  el.textContent=t?("✈️ "+t.name):"🏠 日常";
+}
+
+/* ---------- calculations ---------- */
+function inSplit(r){return r.kind==="公用"||(includePersonal&&r.kind==="自己");}
+function renderSummary(){
+  scopeTagHTML($("sumScope"));
+  var A=cfg.people[0], B=cfg.people[1];
+  var total=0,splitTotal=0,aPaid=0,bPaid=0;
+  scopedItems().forEach(function(r){
+    total+=r.base;
+    if(inSplit(r)){splitTotal+=r.base;if(r.payer===A)aPaid+=r.base;else if(r.payer===B)bPaid+=r.base;}
+  });
+  var per=splitTotal/2;
+  $("s-total").textContent=money(total);
+  $("s-splitTotal").textContent=money(splitTotal);
+  $("s-perPerson").textContent=money(per);
+  $("s-aName").textContent=A+" 已付";$("s-bName").textContent=B+" 已付";
+  $("s-aPaid").textContent=money(aPaid);$("s-bPaid").textContent=money(bPaid);
+  var box=$("settleBox"), hint=$("settleHint");
+  if(splitTotal<=0){box.className="settle";box.innerHTML="尚無分帳資料";
+    hint.innerHTML="規則：標「公用」的支出兩人各付一半；標「自己」的不分（打開上面開關才會一起分）。";return;}
+  var aBal=aPaid-per, diff=Math.abs(Math.round(aBal));
+  var ower=aBal>0?B:A, owee=aBal>0?A:B;
+  if(diff===0){box.className="settle even";box.innerHTML="🎉 剛好打平，<span class='big'>不用補款</span>";}
+  else{box.className="settle";box.innerHTML=ower+" 要還 "+owee+"　<span class='big'>"+money(diff)+"</span>";}
+  hint.innerHTML="公用支出共 "+money(splitTotal)+"，兩人各分 "+money(per)+"。"+
+    A+" 已付 "+money(aPaid)+"、"+B+" 已付 "+money(bPaid)+"，"+
+    (diff===0?"剛好打平。":(ower+" 少付了 "+money(diff)+"，補給 "+owee+" 就扯平。"));
+}
+
+function pieSVG(slices,total){
+  if(!total)return "";
+  var cx=80,cy=80,r=72,a=-Math.PI/2,p="";
+  slices.forEach(function(s){var f=s.value/total,a2=a+f*2*Math.PI;
+    if(f>=0.9999){p+="<circle cx='"+cx+"' cy='"+cy+"' r='"+r+"' fill='"+s.color+"'/>";}
+    else{var x1=cx+r*Math.cos(a),y1=cy+r*Math.sin(a),x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2),lg=f>0.5?1:0;
+      p+="<path d='M"+cx+","+cy+" L"+x1.toFixed(2)+","+y1.toFixed(2)+" A"+r+","+r+" 0 "+lg+" 1 "+x2.toFixed(2)+","+y2.toFixed(2)+" Z' fill='"+s.color+"'/>";}
+    a=a2;});
+  p+="<circle cx='"+cx+"' cy='"+cy+"' r='42' fill='#ffffff'/>";
+  p+="<text x='80' y='75' text-anchor='middle' fill='#7a85a3' font-size='11'>合計</text>";
+  p+="<text x='80' y='93' text-anchor='middle' fill='#0a1633' font-size='15' font-weight='700'>"+ntShort(total)+"</text>";
+  return "<svg viewBox='0 0 160 160' width='168' height='168'>"+p+"</svg>";
+}
+function renderCats(){
+  var map={},total=0;scopedItems().forEach(function(r){map[r.category]=(map[r.category]||0)+r.base;total+=r.base;});
+  var box=$("catBox"),pie=$("catPie");
+  var keys=Object.keys(map).filter(function(c){return map[c];});
+  if(!keys.length){box.innerHTML="<div class='muted'>尚無資料</div>";pie.innerHTML="";return;}
+  keys.sort(function(a,b){return map[b]-map[a];});
+  pie.innerHTML=pieSVG(keys.map(function(c){return {value:map[c],color:catColor(c)};}),total);
+  box.innerHTML=keys.map(function(c){var pct=total?Math.round(map[c]/total*100):0;return "<div class='cat-row'><span><span class='dot' style='background:"+catColor(c)+"'></span>"+(catIcon(c)?catIcon(c)+" ":"")+esc(c)+"<span class='pct'>"+pct+"%</span></span><b>"+money(map[c])+"</b></div>";}).join("");
+}
+function renderMethods(){
+  var box=$("methodBox"),m={};scopedItems().forEach(function(r){m[r.method]=(m[r.method]||0)+r.base;});
+  var keys=Object.keys(m).filter(function(k){return m[k];});
+  if(!keys.length){box.innerHTML="<div class='muted'>尚無資料</div>";return;}
+  keys.sort(function(a,b){return m[b]-m[a];});
+  box.innerHTML=keys.map(function(k){return "<div class='mrow'><span>"+esc(k)+"</span><b>"+money(m[k])+"</b></div>";}).join("");
+}
+function renderPayers(){
+  var box=$("payerBox"),m={},total=0;
+  scopedItems().forEach(function(r){m[r.payer]=(m[r.payer]||0)+r.base;total+=r.base;});
+  var keys=Object.keys(m).filter(function(k){return m[k];});
+  if(!keys.length){box.innerHTML="<div class='muted'>尚無資料</div>";return;}
+  keys.sort(function(a,b){return m[b]-m[a];});
+  box.innerHTML=keys.map(function(k){var pct=total?Math.round(m[k]/total*100):0;return "<div class='cat-row'><span>"+esc(k)+" 付<span class='pct'>"+pct+"%</span></span><b>"+money(m[k])+"</b></div>";}).join("");
+}
+function dayTotals(){var m={};scopedItems().forEach(function(r){m[r.date]=(m[r.date]||0)+r.base;});return m;}
+function activeBudget(){var t=activeTripObj();return t?{total:+t.budgetTotal||0,daily:+t.budgetDaily||0}:{total:cfg.budgetTotal||0,daily:cfg.budgetDaily||0};}
+function renderBudget(){
+  var card=$("budgetCard"),box=$("budgetBox"),bud=activeBudget(),t=activeTripObj();
+  $("budgetTitle").textContent=t?("預算（"+t.name+"）"):"預算（日常）";
+  if(!bud.total&&!bud.daily){card.style.display="none";return;}
+  card.style.display="block";
+  var total=0;scopedItems().forEach(function(r){total+=r.base;});
+  var html="";
+  if(bud.total){var pct=Math.min(100,total/bud.total*100),cls=pct>=100?"over":(pct>=80?"warn":""),left=bud.total-total;
+    html+="<div class='bud-line'><span>總預算 "+money(bud.total)+"</span><span>"+(left>=0?"還剩 "+money(left):"超支 "+money(-left))+"</span></div>"+
+      "<div class='bud-bar'><div class='bud-fill "+cls+"' style='width:"+pct.toFixed(1)+"%'></div></div>"+
+      "<div class='bud-sub'>已花 "+money(total)+"（"+Math.round(total/bud.total*100)+"%）</div>";}
+  if(bud.daily){var dm=dayTotals(),over=0,today=ymd(new Date());Object.keys(dm).forEach(function(d){if(dm[d]>bud.daily)over++;});
+    html+="<div class='bud-sub' style='margin-top:12px;border-top:1px solid var(--line);padding-top:10px;'>每日預算 "+money(bud.daily)+"　·　今日已花 "+money(dm[today]||0)+(over?"　·　<span style='color:var(--amber)'>"+over+" 天超支</span>":"　·　目前都沒超支 ✓")+"</div>";}
+  box.innerHTML=html;
+}
+
+/* ---------- calendar ---------- */
+function renderCalendar(){
+  scopeTagHTML($("calScope"));
+  if(calY==null){var n=new Date();calY=n.getFullYear();calM=n.getMonth();}
+  $("calTitle").textContent=calY+"年"+(calM+1)+"月";
+  var sw=new Date(calY,calM,1).getDay(),days=new Date(calY,calM+1,0).getDate(),totals=dayTotals(),today=ymd(new Date()),mt=0,html="";
+  for(var i=0;i<sw;i++)html+="<div class='cal-cell'></div>";
+  for(var d=1;d<=days;d++){var ds=calY+"-"+pad(calM+1)+"-"+pad(d),t=totals[ds]||0;mt+=t;
+    html+="<div class='cal-cell"+(t?" has":"")+(ds===today?" today":"")+"' data-d='"+ds+"'><span class='cd'>"+d+"</span>"+(t?"<span class='ca'>"+ntShort(t)+"</span>":"")+"</div>";}
+  $("calGrid").innerHTML=html;$("calTotal").textContent="本月合計　"+money(mt);
+}
+function calShift(dl){if(calY==null){var n=new Date();calY=n.getFullYear();calM=n.getMonth();}calM+=dl;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}renderCalendar();}
+function openDay(ds){listDateFilter=ds;switchTab("page-list");renderList();}
+
+/* ---------- list ---------- */
+function populateFilters(){
+  var fc=$("flt-cat"),fp=$("flt-payer"),fdy=$("flt-day");
+  var cc=fc.value,cp=fp.value,cd=fdy.value;
+  fc.innerHTML="<option value=''>全部類別</option>"+cfg.categories.map(function(c){return "<option>"+esc(c)+"</option>";}).join("");
+  fp.innerHTML="<option value=''>全部付款人</option>"+cfg.people.map(function(p){return "<option>"+esc(p)+"</option>";}).join("");
+  var t=activeTripObj();
+  fdy.innerHTML="<option value=''>全部 Day</option>"+(t?dayValues(t).map(function(d){return "<option>"+esc(d)+"</option>";}).join(""):"");
+  fc.value=cc;fp.value=cp;fdy.value=cd;
+}
+function renderDateBar(){
+  var bar=$("dateFilterBar");
+  if(listDateFilter){var p=listDateFilter.split("-");bar.style.display="flex";bar.innerHTML="<span>📅 只看 "+(+p[1])+"/"+(+p[2])+"</span><button id='clrDate'>✕ 清除</button>";$("clrDate").addEventListener("click",function(){listDateFilter="";renderList();});}
+  else{bar.style.display="none";bar.innerHTML="";}
+}
+function renderList(){
+  renderDateBar();
+  var fc=$("flt-cat").value,fp=$("flt-payer").value,fk=$("flt-kind").value,fdy=$("flt-day").value,t=activeTripObj();
+  var rows=state.items.filter(function(r){return inScope(r)&&(!fc||r.category===fc)&&(!fp||r.payer===fp)&&(!fk||r.kind===fk)&&(!fdy||r.day===fdy)&&(!listDateFilter||r.date===listDateFilter);});
+  rows.sort(function(a,b){return (a.date<b.date?1:a.date>b.date?-1:b.ts-a.ts);});
+  var box=$("listBox");
+  if(!rows.length){box.innerHTML="<div class='empty'>還沒有符合的紀錄<br>到「記帳」新增第一筆吧</div>";return;}
+  box.innerHTML=rows.map(function(r){
+    var amtMain=(r.currency===cfg.base)?money(r.amount):(sym(r.currency)+Math.round(r.amount).toLocaleString("en-US"));
+    var amtSub=(r.currency===cfg.base)?"":("≈ "+money(r.base));
+    var dchip=r.date?(+r.date.split("-")[1])+"/"+(+r.date.split("-")[2]):"";
+    var rcpts="";
+    if(r.receipts&&r.receipts.length){
+      rcpts="<div class='rcpts'>"+r.receipts.map(function(x){
+        var thumb=x.url&&x.url.indexOf("data:")===0?x.url:(x.id&&x.id!=="local"?"https://drive.google.com/thumbnail?id="+x.id+"&sz=w120":"");
+        var href=x.url||"#";
+        return thumb?("<a href='"+href+"' target='_blank'><img src='"+thumb+"' onerror=\"this.parentNode.className='fallback';this.parentNode.innerHTML='📷';\"></a>")
+                    :("<a href='"+href+"' target='_blank' class='fallback'>📷</a>");
+      }).join("")+"</div>";
+    }
+    return "<div class='item'><div class='top'><div class='nm'>"+esc(r.item)+(r.note?" <span class='muted' style='font-weight:400'>· "+esc(r.note)+"</span>":"")+"</div><div class='amt'>"+amtMain+(amtSub?"<small>"+amtSub+"</small>":"")+"</div></div>"+
+      "<div class='meta'><span class='chip'>"+esc(r.payer)+" 付</span>"+(dchip?"<span class='chip'>"+dchip+"</span>":"")+(t&&r.day?"<span class='chip day'>"+esc(r.day)+"</span>":"")+"<span class='chip'>"+(catIcon(r.category)?catIcon(r.category)+" ":"")+esc(r.category)+"</span><span class='chip'>"+esc(r.method)+"</span>"+(r.currency!==cfg.base?"<span class='chip'>"+esc(r.currency)+"</span>":"")+"<span class='chip "+(r.kind==="自己"?"self":"shared")+"'>"+esc(r.kind||"公用")+"</span></div>"+rcpts+
+      "<div class='act'><button onclick=\"editEntry('"+r.id+"')\">✏️ 編輯</button><button class='del' onclick=\"delEntry('"+r.id+"')\">🗑 刪除</button></div></div>";
+  }).join("");
+}
+
+/* ---------- export (目前範圍) ---------- */
+function rowsForExport(){
+  return scopedItems().slice().sort(function(a,b){return (a.date<b.date?-1:a.date>b.date?1:a.ts-b.ts);}).map(function(r){
+    var d=new Date(r.ts),ts=d.getFullYear()+"/"+(d.getMonth()+1)+"/"+d.getDate()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+    var tn=r.trip?((tripById(r.trip)||{}).name||r.trip):"日常";
+    return [(r.date||"").replace(/-/g,"/"),tn,r.day||"",r.item,r.amount,r.currency,Math.round(r.base),r.rateUsed,r.payer,r.method,r.category,r.kind,r.note||"",ts];
+  });
+}
+function cols(){return ["日期","旅程","Day","項目","金額","幣別",cfg.base+"金額","匯率","付款人","付款方式","類別","公用/自己","備註","建立時間"];}
+function copyTSV(){
+  if(!scopedItems().length){toast("此範圍沒有資料");return;}
+  var txt=[cols().join("\t")].concat(rowsForExport().map(function(r){return r.join("\t");})).join("\n");
+  navigator.clipboard.writeText(txt).then(function(){toast("已複製 ✓ 貼進試算表即可");}).catch(function(){var ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast("已複製 ✓");}catch(e){toast("複製失敗");}document.body.removeChild(ta);});
+}
+function downloadCSV(){
+  if(!scopedItems().length){toast("此範圍沒有資料");return;}
+  var q=function(v){v=""+v;return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  var csv="﻿"+[cols().map(q).join(",")].concat(rowsForExport().map(function(r){return r.map(q).join(",");})).join("\r\n");
+  var t=activeTripObj(),fn="記帳_"+(t?t.name+"_":"日常_")+ymd(new Date())+".csv";
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);toast("CSV 已下載");
+}
+
+/* ---------- rates ---------- */
+function fetchRate(manual){
+  if($("fetchRateBtn"))$("fetchRateBtn").textContent="抓取中…";
+  return fetch(RATE_API+encodeURIComponent(cfg.base),{cache:"no-store"}).then(function(r){return r.json();}).then(function(j){
+    if(j&&j.result==="success"&&j.rates){
+      rateMap={};cfg.currencies.forEach(function(c){if(c===cfg.base)rateMap[c]=1;else if(j.rates[c])rateMap[c]=1/j.rates[c];});
+      rateOK=true;rateTime=(j.time_last_update_unix?j.time_last_update_unix*1000:Date.now());
+      syncRateLabel();renderAll();if(manual)toast("匯率已更新");
+    }else throw new Error("bad");
+  }).catch(function(){rateOK=false;syncRateLabel();if(manual)toast("抓取失敗，改用手動匯率");}).then(function(){if($("fetchRateBtn"))$("fetchRateBtn").textContent="🔄 抓即時匯率";});
+}
+function syncRateLabel(){
+  var others=cfg.currencies.filter(function(c){return c!==cfg.base;});
+  var lbl;
+  if(!others.length){lbl="單一幣別 "+cfg.base;}
+  else if(rateOK){var d=new Date(rateTime);lbl="即時匯率 🟢 "+others.map(function(c){return "1"+c+"≈"+(rateFor(c)).toFixed(3)+cfg.base;}).join("　")+"<br>來源 exchangerate-api.com · "+(d.getMonth()+1)+"/"+d.getDate();}
+  else{lbl="手動匯率 "+others.map(function(c){return "1"+c+"="+rateFor(c)+cfg.base;}).join("　")+"<br>（即時匯率抓取中或離線）";}
+  $("rateLabel").innerHTML=lbl;
+  if($("rateSrc"))$("rateSrc").innerHTML="目前匯率來源："+(rateOK?"exchangerate-api.com 即時":"手動匯率");
+}
+
+/* ---------- 旅程 CRUD ---------- */
+function renderTripList(){
+  var box=$("tripList");
+  if(!cfg.trips||!cfg.trips.length){box.innerHTML="<div class='muted'>還沒有旅程。新增一趟後，頂部就會出現切換鈕。</div>";return;}
+  box.innerHTML=cfg.trips.map(function(t){
+    var sub=[];if(t.start)sub.push(t.start+(t.end?(" → "+t.end):""));if(t.cur)sub.push("主要 "+t.cur);if(t.budgetTotal)sub.push("預算 "+money(t.budgetTotal));
+    return "<div class='triprow'><div><div class='tl'>✈️ "+esc(t.name)+"</div><div class='ts'>"+esc(sub.join("　·　")||"未設定細節")+"</div></div>"+
+      "<div class='tb'><button onclick=\"openTripModal('"+t.id+"')\">編輯</button><button class='del' onclick=\"deleteTrip('"+t.id+"')\">刪除</button></div></div>";
+  }).join("");
+}
+function fillCurSelect(sel,val){
+  sel.innerHTML=cfg.currencies.map(function(c){return "<option"+(c===val?" selected":"")+">"+esc(c)+"</option>";}).join("");
+}
+function openTripModal(id){
+  tripEditId=id||null;
+  var t=id?tripById(id):null;
+  $("tripModalTitle").textContent=t?"編輯旅程":"新增旅程";
+  $("t-name").value=t?t.name:"";
+  $("t-start").value=t&&t.start?t.start:"";
+  $("t-end").value=t&&t.end?t.end:"";
+  fillCurSelect($("t-cur"),t&&t.cur?t.cur:cfg.currencies[0]);
+  $("t-budget").value=t&&t.budgetTotal?t.budgetTotal:"";
+  $("t-budget-daily").value=t&&t.budgetDaily?t.budgetDaily:"";
+  $("tripDeleteBtn").style.display=t?"block":"none";
+  $("tripModal").classList.add("show");$("tripModalBack").classList.add("show");
+}
+function closeTripModal(){$("tripModal").classList.remove("show");$("tripModalBack").classList.remove("show");}
+function saveTripFromModal(){
+  var name=$("t-name").value.trim();
+  if(!name){toast("請填旅程名稱");return;}
+  var rec={
+    id:tripEditId||("t"+Date.now()+Math.random().toString(36).slice(2,5)),
+    name:name, start:$("t-start").value||"", end:$("t-end").value||"",
+    cur:$("t-cur").value||cfg.currencies[0],
+    budgetTotal:parseFloat($("t-budget").value)||0,
+    budgetDaily:parseFloat($("t-budget-daily").value)||0
+  };
+  if(!cfg.trips)cfg.trips=[];
+  if(tripEditId){var i=cfg.trips.findIndex(function(x){return x.id===tripEditId;});if(i>=0)cfg.trips[i]=rec;}
+  else{cfg.trips.push(rec);}
+  gas("saveConfig",cfg).catch(syncErr);
+  closeTripModal();renderTripList();renderTripBar();
+  if(!tripEditId){setActiveTrip(rec.id);switchTab("page-add");toast("旅程已建立，已切換到這趟 ✈️");}
+  else{updateModeUI();renderAll();toast("旅程已更新");}
+}
+function deleteTrip(id){
+  var t=tripById(id);if(!t)return;
+  var n=state.items.filter(function(r){return (r.trip||"")===id;}).length;
+  if(!confirm("刪除旅程「"+t.name+"」？\n（這趟的 "+n+" 筆帳不會被刪除，只是會回到沒有旅程歸屬的狀態）"))return;
+  cfg.trips=cfg.trips.filter(function(x){return x.id!==id;});
+  gas("saveConfig",cfg).catch(syncErr);
+  if(activeTrip===id)setActiveTrip("");
+  closeTripModal();renderTripList();renderTripBar();renderAll();toast("旅程已刪除");
+}
+
+/* ---------- settings ---------- */
+function syncSettingsUI(){
+  $("set-people").value=cfg.people.join(",");
+  $("set-base").value=cfg.base;
+  $("set-curs").value=cfg.currencies.join(",");
+  $("set-manual").value=Object.keys(cfg.manualRates||{}).map(function(k){return k+"="+cfg.manualRates[k];}).join("\n");
+  $("set-cats").value=cfg.categories.join(",");
+  $("set-methods").value=cfg.methods.join(",");
+  $("set-budget").value=cfg.budgetTotal||"";
+  $("set-budget-daily").value=cfg.budgetDaily||"";
+  $("set-quick").value=(cfg.quickItems||[]).join("\n");
+  $("set-drive").value=cfg.drive||"";
+  $("syncNote").textContent=USE_GAS?"☁️ 已連雲端（Google Sheet），多裝置共用同一份資料。":"📴 本機預覽模式：尚未填 API_URL，資料只存在這台瀏覽器。填好 index.html 裡的 API_URL 才會雲端同步。";
+  renderTripList();
+  syncRateLabel();
+}
+function splitCsv(s){return (s||"").split(/[,，]/).map(function(x){return x.trim();}).filter(Boolean);}
+function saveSettingsFromUI(){
+  var ppl=splitCsv($("set-people").value);if(ppl.length<2){toast("付款人需要兩個名字");return;}
+  cfg.people=[ppl[0],ppl[1]];
+  cfg.base=($("set-base").value.trim()||"TWD").toUpperCase();
+  var curs=splitCsv($("set-curs").value).map(function(c){return c.toUpperCase();});
+  if(curs.indexOf(cfg.base)<0)curs.unshift(cfg.base);
+  cfg.currencies=curs;
+  var mr={};$("set-manual").value.split("\n").forEach(function(line){var m=line.split(/[=:]/);if(m.length>=2&&m[0].trim()){mr[m[0].trim().toUpperCase()]=+m[1].trim()||0;}});cfg.manualRates=mr;
+  cfg.categories=splitCsv($("set-cats").value);if(!cfg.categories.length)cfg.categories=DEF.categories.slice();
+  cfg.methods=splitCsv($("set-methods").value);if(!cfg.methods.length)cfg.methods=DEF.methods.slice();
+  cfg.budgetTotal=parseFloat($("set-budget").value)||0;
+  cfg.budgetDaily=parseFloat($("set-budget-daily").value)||0;
+  cfg.quickItems=$("set-quick").value.split("\n").map(function(s){return s.trim();}).filter(Boolean);
+  cfg.drive=$("set-drive").value.trim();
+  gas("saveConfig",cfg).catch(syncErr);
+  renderFormSegs();populateFilters();clearForm();syncSettingsUI();fetchRate(false);renderAll();toast("設定已儲存");
+}
+
+/* ---------- tabs / render ---------- */
+function switchTab(id){var ps=document.querySelectorAll(".page");for(var i=0;i<ps.length;i++)ps[i].classList.toggle("on",ps[i].id===id);var bs=document.querySelectorAll(".tabbar button");for(var j=0;j<bs.length;j++)bs[j].classList.toggle("on",bs[j].getAttribute("data-tab")===id);window.scrollTo(0,0);}
+function renderAll(){populateFilters();renderList();renderSummary();renderCats();renderPayers();renderMethods();renderCalendar();renderBudget();renderQuickChips();}
+
+/* ---------- init ---------- */
+function applyConfig(loaded){
+  if(loaded&&typeof loaded==="object"){Object.keys(DEF).forEach(function(k){if(loaded[k]!==undefined&&loaded[k]!==null&&loaded[k]!=="")cfg[k]=loaded[k];});}
+  if(!cfg.currencies||!cfg.currencies.length)cfg.currencies=[cfg.base];
+  if(cfg.currencies.indexOf(cfg.base)<0)cfg.currencies.unshift(cfg.base);
+  if(!Array.isArray(cfg.trips))cfg.trips=[];
+  if(activeTrip&&!tripById(activeTrip)){activeTrip="";localStorage.setItem("genledger_activeTrip","");}
+}
+function boot(){
+  gas("getData").then(function(d){
+    applyConfig(d&&d.config);
+    state.items=(d&&d.items)?d.items.map(function(r){r.amount=+r.amount;r.base=+r.base;r.rateUsed=+r.rateUsed;
+      r.trip=r.trip||"";r.day=r.day||"";
+      if(typeof r.receipts==="string"){try{r.receipts=r.receipts?JSON.parse(r.receipts):[];}catch(e){r.receipts=[];}}
+      if(!r.receipts)r.receipts=[];return r;}):[];
+    renderFormSegs();renderTripBar();updateModeUI();syncSettingsUI();clearForm();renderAll();fetchRate(false);
+  }).catch(function(){applyConfig(null);renderFormSegs();renderTripBar();updateModeUI();syncSettingsUI();clearForm();renderAll();toast("讀取資料失敗");});
+}
+function init(){
+  bindSeg("seg-cur",updateAmtCalc);bindSeg("seg-payer");bindSeg("seg-method");bindSeg("seg-cat");bindSeg("seg-kind");bindSeg("seg-day");
+  $("f-amountField").addEventListener("click",openKeypad);
+  $("kpBackdrop").addEventListener("click",closeKeypad);
+  $("keypad").addEventListener("click",function(e){var b=e.target.closest("button[data-k]");if(b)keyPress(b.getAttribute("data-k"));});
+  $("quickChips").addEventListener("click",function(e){var b=e.target.closest("button[data-i]");if(b)applyQuick(+b.getAttribute("data-i"));});
+  $("addPhotoBtn").addEventListener("click",function(){$("f-photo").click();});
+  $("f-photo").addEventListener("change",function(e){if(e.target.files&&e.target.files.length)onPhotoPick(e.target.files);e.target.value="";});
+  $("saveBtn").addEventListener("click",saveEntry);
+  $("cancelEditBtn").addEventListener("click",clearForm);
+  $("copyBtn").addEventListener("click",copyTSV);
+  $("csvBtn").addEventListener("click",downloadCSV);
+  $("saveSetBtn").addEventListener("click",saveSettingsFromUI);
+  $("fetchRateBtn").addEventListener("click",function(){fetchRate(true);});
+  $("reloadBtn").addEventListener("click",boot);
+  $("incPersonal").addEventListener("change",function(){includePersonal=this.checked;renderSummary();});
+  ["flt-cat","flt-payer","flt-kind","flt-day"].forEach(function(id){$(id).addEventListener("change",renderList);});
+  $("f-date").addEventListener("change",function(){var t=activeTripObj();if(t){var ad=autoDay($("f-date").value,t);if(ad)setSeg("seg-day",ad);}syncDateQuick();});
+  $("dateQuick").addEventListener("click",function(e){var b=e.target.closest("button[data-d]");if(!b)return;$("f-date").value=shiftYmd(+b.getAttribute("data-d"));var t=activeTripObj();if(t){var ad=autoDay($("f-date").value,t);if(ad)setSeg("seg-day",ad);}syncDateQuick();});
+  $("calPrev").addEventListener("click",function(){calShift(-1);});
+  $("calNext").addEventListener("click",function(){calShift(1);});
+  $("calGrid").addEventListener("click",function(e){var c=e.target.closest(".cal-cell.has");if(c)openDay(c.getAttribute("data-d"));});
+  $("goReceipt").addEventListener("click",function(){if(cfg.drive)window.open(cfg.drive,"_blank");else{toast("請先到設定填 Drive 連結");switchTab("page-set");}});
+  /* trip bar */
+  $("tripBar").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(b.getAttribute("data-add")){openTripModal(null);return;}setActiveTrip(b.getAttribute("data-t"));});
+  $("addTripBtn").addEventListener("click",function(){openTripModal(null);});
+  $("tripSaveBtn").addEventListener("click",saveTripFromModal);
+  $("tripCancelBtn").addEventListener("click",closeTripModal);
+  $("tripModalBack").addEventListener("click",closeTripModal);
+  $("tripDeleteBtn").addEventListener("click",function(){if(tripEditId)deleteTrip(tripEditId);});
+  var tb=document.querySelectorAll(".tabbar button");for(var i=0;i<tb.length;i++)tb[i].addEventListener("click",function(){switchTab(this.getAttribute("data-tab"));});
+  boot();
+}
+init();
+</script>
+</body>
+</html>
