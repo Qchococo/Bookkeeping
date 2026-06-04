@@ -998,6 +998,8 @@ function init(){
   $("tripModalBack").addEventListener("click",closeTripModal);
   $("tripDeleteBtn").addEventListener("click",function(){if(tripEditId)deleteTrip(tripEditId);});
   var tb=document.querySelectorAll(".tabbar button");for(var i=0;i<tb.length;i++)tb[i].addEventListener("click",function(){switchTab(this.getAttribute("data-tab"));});
+  /* 先用預設值把畫面立刻畫好（避免載入時的空白閃爍），雲端資料回來後 boot 會再刷新一次 */
+  renderFormSegs();renderTripBar();updateModeUI();clearForm();renderAll();
   boot();
 }
 init();
