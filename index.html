@@ -454,6 +454,15 @@ function catIcon(c){return CAT_ICON[c]||"";}
 function $(id){return document.getElementById(id);}
 function pad(n){return (n<10?"0":"")+n;}
 function ymd(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+/* 把雲端可能回傳的各種日期格式（ISO 帶時間、Date…）統一成 本地 年-月-日，月曆才對得上 */
+function normDate(v){
+  if(v==null)return "";
+  v=""+v;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;           /* 已經是乾淨格式 */
+  var d=new Date(v);
+  if(!isNaN(d.getTime()))return ymd(d);                 /* ISO/含時間 → 本地年月日 */
+  return v;
+}
 function shiftYmd(off){var d=new Date();d.setDate(d.getDate()+(+off||0));return ymd(d);}
 function syncDateQuick(){var bs=$("dateQuick").querySelectorAll("button"),v=$("f-date").value;for(var i=0;i<bs.length;i++)bs[i].classList.toggle("on",shiftYmd(+bs[i].getAttribute("data-d"))===v);}
 function sym(c){return SYM[c]||(c+" ");}
@@ -962,7 +971,7 @@ function boot(){
   gas("getData").then(function(d){
     applyConfig(d&&d.config);
     state.items=(d&&d.items)?d.items.map(function(r){r.amount=+r.amount;r.base=+r.base;r.rateUsed=+r.rateUsed;
-      r.trip=r.trip||"";r.day=r.day||"";
+      r.date=normDate(r.date);r.trip=r.trip||"";r.day=r.day||"";
       if(typeof r.receipts==="string"){try{r.receipts=r.receipts?JSON.parse(r.receipts):[];}catch(e){r.receipts=[];}}
       if(!r.receipts)r.receipts=[];return r;}):[];
     renderFormSegs();renderTripBar();updateModeUI();syncSettingsUI();clearForm();renderAll();fetchRate(false);
