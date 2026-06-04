@@ -335,9 +335,8 @@
       <div><label class="fl">日常每日預算</label><input type="number" id="set-budget-daily" step="100" placeholder="不填=不限"></div>
     </div>
     <div class="row"><label class="fl">常用項目（一行一個，可寫「名稱,類別」）</label><textarea id="set-quick"></textarea></div>
-    <div class="row"><label class="fl">Google Drive 收據資料夾連結</label><input type="url" id="set-drive" placeholder="https://drive.google.com/..."></div>
-    <button class="btn sec" id="goReceipt" style="margin-bottom:8px;">📂 開啟收據資料夾（瀏覽全部）</button>
     <button class="btn" id="saveSetBtn">儲存設定</button>
+    <div class="small-note">收據照片會自動上傳到已設定好的 Google Drive 資料夾，不用手動開。</div>
   </div>
   <div class="card">
     <div class="small-note" id="syncNote"></div>
@@ -393,7 +392,7 @@
 "use strict";
 /* ---------- data layer: Apps Script if available, else localStorage ---------- */
 /* 部署「記帳_API_Code.gs」後，把結尾 /exec 的網址貼進下面這行引號裡： */
-var API_URL = "PASTE_API_URL_HERE";
+var API_URL = "https://script.google.com/macros/s/AKfycbymm0rk6b9Faf3-rF5LqY-svgSzDn8Zs7Zr8aGqY4bknzrF1yUpPXjca2ZZp8ehBbnJ/exec";
 var USE_GAS = !!(API_URL && API_URL.indexOf("PASTE")<0);
 function apiCall(action,payload,usePost){
   if(usePost){
@@ -425,11 +424,11 @@ function localGas(fn,arg){
 
 /* ---------- defaults / state ---------- */
 var DEF={
-  people:["J","Q"], base:"TWD", currencies:["TWD","JPY"],
+  people:["Q","J"], base:"TWD", currencies:["TWD","JPY"],
   categories:["餐飲","交通","購物","娛樂","住宿","生活","其他"],
   methods:["現金","信用卡","行動支付","其他"],
   manualRates:{JPY:0.21}, budgetTotal:0, budgetDaily:0,
-  quickItems:["午餐,餐飲","晚餐,餐飲","咖啡,餐飲","交通,交通","日用品,生活"],
+  quickItems:["早餐,餐飲","午餐,餐飲","晚餐,餐飲","手搖飲,餐飲","咖啡,餐飲","uber,交通","儲值,交通","全聯,生活","日用品,生活"],
   drive:"", trips:[]
 };
 var cfg=JSON.parse(JSON.stringify(DEF));
@@ -925,7 +924,6 @@ function syncSettingsUI(){
   $("set-budget").value=cfg.budgetTotal||"";
   $("set-budget-daily").value=cfg.budgetDaily||"";
   $("set-quick").value=(cfg.quickItems||[]).join("\n");
-  $("set-drive").value=cfg.drive||"";
   $("syncNote").textContent=USE_GAS?"☁️ 已連雲端（Google Sheet），多裝置共用同一份資料。":"📴 本機預覽模式：尚未填 API_URL，資料只存在這台瀏覽器。填好 index.html 裡的 API_URL 才會雲端同步。";
   renderTripList();
   syncRateLabel();
@@ -944,7 +942,6 @@ function saveSettingsFromUI(){
   cfg.budgetTotal=parseFloat($("set-budget").value)||0;
   cfg.budgetDaily=parseFloat($("set-budget-daily").value)||0;
   cfg.quickItems=$("set-quick").value.split("\n").map(function(s){return s.trim();}).filter(Boolean);
-  cfg.drive=$("set-drive").value.trim();
   gas("saveConfig",cfg).catch(syncErr);
   renderFormSegs();populateFilters();clearForm();syncSettingsUI();fetchRate(false);renderAll();toast("設定已儲存");
 }
@@ -993,7 +990,6 @@ function init(){
   $("calPrev").addEventListener("click",function(){calShift(-1);});
   $("calNext").addEventListener("click",function(){calShift(1);});
   $("calGrid").addEventListener("click",function(e){var c=e.target.closest(".cal-cell.has");if(c)openDay(c.getAttribute("data-d"));});
-  $("goReceipt").addEventListener("click",function(){if(cfg.drive)window.open(cfg.drive,"_blank");else{toast("請先到設定填 Drive 連結");switchTab("page-set");}});
   /* trip bar */
   $("tripBar").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(b.getAttribute("data-add")){openTripModal(null);return;}setActiveTrip(b.getAttribute("data-t"));});
   $("addTripBtn").addEventListener("click",function(){openTripModal(null);});
