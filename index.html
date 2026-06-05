@@ -380,7 +380,10 @@
     <div class="small-note">收據照片會自動上傳到已設定好的 Google Drive 資料夾，不用手動開。</div>
   </div>
   <div class="card">
-    <div class="small-note" id="syncNote"></div>
+    <label class="fl">☁️ 雲端 API 網址（你的 /exec）</label>
+    <input type="url" id="set-apiurl" placeholder="https://script.google.com/macros/s/XXXX/exec">
+    <button class="btn" id="saveApiBtn" style="margin-top:8px;">連結雲端</button>
+    <div class="small-note" id="syncNote" style="margin-top:10px;"></div>
     <button class="btn sec" id="reloadBtn" style="margin-top:8px;">↻ 重新整理資料</button>
   </div>
 </section>
@@ -431,9 +434,9 @@
 <script>
 "use strict";
 /* ---------- data layer: Apps Script if available, else localStorage ---------- */
-/* 部署「記帳_API_Code.gs」後，把結尾 /exec 的網址貼進下面這行引號裡： */
-var API_URL = "https://script.google.com/macros/s/AKfycbymm0rk6b9Faf3-rF5LqY-svgSzDn8Zs7Zr8aGqY4bknzrF1yUpPXjca2ZZp8ehBbnJ/exec";
-var USE_GAS = !!(API_URL && API_URL.indexOf("PASTE")<0);
+/* API 網址存在這台裝置（不寫死在程式裡，公開原始碼就不會洩漏你的網址） */
+var API_URL = localStorage.getItem("genledger_apiurl") || "";
+var USE_GAS = !!API_URL;
 function apiCall(action,payload,usePost){
   if(usePost){
     return fetch(API_URL,{method:"POST",body:JSON.stringify({action:action,payload:payload})}).then(function(r){return r.json();});
@@ -983,9 +986,18 @@ function syncSettingsUI(){
   $("set-budget").value=cfg.budgetTotal||"";
   $("set-budget-daily").value=cfg.budgetDaily||"";
   $("set-quick").value=(cfg.quickItems||[]).join("\n");
-  $("syncNote").textContent=USE_GAS?"☁️ 已連雲端（Google Sheet），多裝置共用同一份資料。":"📴 本機預覽模式：尚未填 API_URL，資料只存在這台瀏覽器。填好 index.html 裡的 API_URL 才會雲端同步。";
+  if($("set-apiurl"))$("set-apiurl").value=API_URL;
+  $("syncNote").textContent=USE_GAS?"☁️ 已連雲端（Google Sheet），這台裝置會同步到你的 Sheet。":"📴 還沒連雲端：在上面貼你自己的 /exec 網址、按「連結雲端」。在這之前資料只存在這台瀏覽器。";
   renderTripList();
   syncRateLabel();
+}
+function saveApiUrl(){
+  var u=($("set-apiurl").value||"").trim();
+  if(u&&!/^https:\/\/script\.google\.com\/.*\/exec$/.test(u)){toast("網址格式怪怪的，應該是 https://script.google.com/.../exec");return;}
+  localStorage.setItem("genledger_apiurl",u);
+  API_URL=u;USE_GAS=!!u;
+  toast(u?"已連結雲端，重新載入中…":"已清除雲端連結");
+  boot();
 }
 function splitCsv(s){return (s||"").split(/[,，]/).map(function(x){return x.trim();}).filter(Boolean);}
 function saveSettingsFromUI(){
@@ -1043,6 +1055,7 @@ function init(){
   $("saveSetBtn").addEventListener("click",saveSettingsFromUI);
   $("fetchRateBtn").addEventListener("click",function(){fetchRate(true);});
   $("reloadBtn").addEventListener("click",boot);
+  $("saveApiBtn").addEventListener("click",saveApiUrl);
   $("incPersonal").addEventListener("change",function(){includePersonal=this.checked;renderSummary();});
   ["flt-cat","flt-payer","flt-kind","flt-day"].forEach(function(id){$(id).addEventListener("change",renderList);});
   $("f-date").addEventListener("change",function(){var t=activeTripObj();if(t){var ad=autoDay($("f-date").value,t);if(ad)setSeg("seg-day",ad);}syncDateQuick();});
