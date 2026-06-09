@@ -507,7 +507,7 @@
 
 <nav class="tabbar">
   <button data-tab="page-add" class="on"><span class="ic">➕</span>記帳</button>
-  <button data-tab="page-inbox" class="tabbtn-wrap"><span class="ic">📥</span>收件匣<span class="tab-badge" id="inboxBadge" style="display:none;">0</span></button>
+  <button data-tab="page-inbox" class="tabbtn-wrap" style="display:none;"><span class="ic">📥</span>收件匣<span class="tab-badge" id="inboxBadge" style="display:none;">0</span></button>
   <button data-tab="page-list"><span class="ic">📋</span>明細</button>
   <button data-tab="page-sum"><span class="ic">🧮</span>結算</button>
   <button data-tab="page-set"><span class="ic">⚙️</span>設定</button>
@@ -1390,8 +1390,8 @@ function init(){
   $("ieSaveBtn").addEventListener("click",saveImpModal);
   $("ieCancelBtn").addEventListener("click",closeImpModal);
   $("impModalBack").addEventListener("click",closeImpModal);
-  /* 第一次使用：自動帶入 mock，讓收件匣立刻有東西可看（之後不重複） */
-  if(!localStorage.getItem("genledger_imported_seeded")){runImport();localStorage.setItem("genledger_imported_seeded","1");}
+  /* 收件匣功能停用（個人版不使用）：清掉早期塞入的示範資料，不再自動帶入 */
+  try{ ImportStore.save([]); }catch(e){}
   /* 先用預設值把畫面立刻畫好（避免載入時的空白閃爍），雲端資料回來後 boot 會再刷新一次 */
   renderFormSegs();renderTripBar();updateModeUI();clearForm();renderAll();
   boot();
