@@ -193,6 +193,37 @@
   .burden-row .bsub{font-size:12px;color:var(--sub);margin-top:2px;}
   .burden-row .bamt{font-size:22px;font-weight:800;color:var(--accent);white-space:nowrap;}
   .settle .arrow{font-size:20px;font-weight:800;color:var(--accent);}
+  /* 待確認支出匣（收件匣） */
+  .inbox-sum{font-size:14px;color:var(--sub);line-height:1.7;}
+  .inbox-sum b{color:var(--accent);font-size:17px;}
+  .tabbtn-wrap{position:relative;}
+  .tab-badge{position:absolute;top:4px;left:calc(50% + 6px);min-width:16px;height:16px;line-height:16px;padding:0 4px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-weight:700;text-align:center;}
+  .srcfilter{display:flex;gap:7px;overflow-x:auto;margin-bottom:10px;-webkit-overflow-scrolling:touch;}
+  .srcfilter button{flex:0 0 auto;background:var(--card2);border:1px solid var(--line);color:var(--sub);border-radius:18px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .srcfilter button.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .imp-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;box-shadow:var(--shadow);}
+  .imp-card.dup{border-color:#f0c33c;background:#fffdf3;}
+  .imp-top{display:flex;align-items:center;gap:11px;}
+  .imp-ico{flex:0 0 auto;width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;background:var(--card2);}
+  .imp-mid{flex:1;min-width:0;}
+  .imp-nm{font-weight:700;font-size:15px;}
+  .imp-sub{font-size:12px;color:var(--sub);margin-top:2px;}
+  .imp-amt{font-weight:800;font-size:16px;white-space:nowrap;}
+  .imp-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;}
+  .book-chip{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;}
+  .book-chip.family{color:var(--accent);background:#e7f2fb;border:1px solid #bfdcf5;}
+  .book-chip.personal{color:var(--amber);background:#fbf4e2;border:1px solid #ecdcb3;}
+  .dup-chip{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;color:#9a6b00;background:#fff3cf;border:1px solid #f0d98a;}
+  .imp-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .imp-actions button{flex:1 1 auto;min-width:calc(33% - 6px);border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:9px;padding:8px 6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .imp-actions button.primary{background:var(--accent);border-color:var(--accent);color:#fff;flex-basis:100%;}
+  .imp-actions button.ghost{color:var(--sub);}
+  .imp-actions button.warn{color:var(--red);border-color:#f3c6c8;}
+  .status-pill{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;}
+  .status-pill.recorded{color:#0c7a44;background:#e6f4ec;border:1px solid #bfe3cd;}
+  .status-pill.ignored{color:var(--sub);background:var(--card2);border:1px solid var(--line);}
+  .status-pill.duplicate{color:#9a6b00;background:#fff3cf;border:1px solid #f0d98a;}
+  .status-pill.snoozed{color:var(--accent);background:#e7f2fb;border:1px solid #bfdcf5;}
   /* keypad */
   .kp-backdrop{position:fixed;inset:0;background:rgba(10,22,51,.35);z-index:55;opacity:0;pointer-events:none;transition:.2s;}
   .kp-backdrop.show{opacity:1;pointer-events:auto;}
@@ -274,7 +305,33 @@
   </div>
 </section>
 
-<!-- 月曆 -->
+<!-- 待確認支出匣（收件匣） -->
+<section class="page" id="page-inbox">
+  <div class="card">
+    <label class="fl" style="margin-bottom:8px;">📥 待確認支出匣</label>
+    <div class="inbox-sum" id="inboxSummary">尚未帶入任何外部支出</div>
+    <button class="btn" id="importBtn" style="margin-top:12px;">📥 帶入外部支出（發票 / 銀行 / LINE Pay）</button>
+    <div class="small-note">外部資料會先進這裡，由你一鍵決定要不要記帳，不會直接變成帳。</div>
+  </div>
+  <div class="srcfilter" id="inboxSrc">
+    <button data-s="" class="on">全部來源</button>
+    <button data-s="invoice">🧾 發票</button>
+    <button data-s="bank">🏦 銀行</button>
+    <button data-s="linePay">💚 LINE Pay</button>
+  </div>
+  <div class="filters">
+    <select id="inboxStatus">
+      <option value="pending">待確認</option>
+      <option value="snoozed">稍後處理</option>
+      <option value="recorded">已記帳</option>
+      <option value="ignored">已忽略</option>
+      <option value="duplicate">重複</option>
+      <option value="all">全部狀態</option>
+    </select>
+  </div>
+  <div id="inboxList"></div>
+</section>
+
 <!-- 明細（含月份切換，取代月曆） -->
 <section class="page" id="page-list">
   <div class="card">
@@ -422,8 +479,35 @@
   <button class="btn sec" id="tripCancelBtn" style="margin-top:8px;">取消</button>
 </div>
 
+<!-- 編輯後記帳 modal -->
+<div class="modal-backdrop" id="impModalBack"></div>
+<div class="modal" id="impModal">
+  <h3>編輯後記帳</h3>
+  <div class="row"><label class="fl">記入哪個帳本</label><div class="seg" id="ie-book"></div></div>
+  <div class="row"><label class="fl">商家 / 項目</label><input type="text" id="ie-item"></div>
+  <div class="grid2 row">
+    <div><label class="fl">金額</label><input type="number" id="ie-amount" step="1"></div>
+    <div><label class="fl">日期</label><input type="date" id="ie-date"></div>
+  </div>
+  <div class="grid2 row">
+    <div><label class="fl">分類</label><select id="ie-cat"></select></div>
+    <div><label class="fl">付款方式</label><select id="ie-method"></select></div>
+  </div>
+  <div class="row"><label class="fl">備註</label><input type="text" id="ie-note"></div>
+  <div class="toggle-row"><span>需要分攤（家庭共同支出）</span><label class="switch"><input type="checkbox" id="ie-split"><span class="sl"></span></label></div>
+  <div id="ie-splitbox" style="display:none;">
+    <div class="grid2 row">
+      <div><label class="fl">分攤對象</label><select id="ie-splitwith"></select></div>
+      <div><label class="fl">我負擔比例 %</label><input type="number" id="ie-ratio" min="0" max="100" step="5" value="50"></div>
+    </div>
+  </div>
+  <button class="btn" id="ieSaveBtn">✓ 確認記帳</button>
+  <button class="btn sec" id="ieCancelBtn" style="margin-top:8px;">取消</button>
+</div>
+
 <nav class="tabbar">
   <button data-tab="page-add" class="on"><span class="ic">➕</span>記帳</button>
+  <button data-tab="page-inbox" class="tabbtn-wrap"><span class="ic">📥</span>收件匣<span class="tab-badge" id="inboxBadge" style="display:none;">0</span></button>
   <button data-tab="page-list"><span class="ic">📋</span>明細</button>
   <button data-tab="page-sum"><span class="ic">🧮</span>結算</button>
   <button data-tab="page-set"><span class="ic">⚙️</span>設定</button>
@@ -434,8 +518,11 @@
 <script>
 "use strict";
 /* ---------- data layer: Apps Script if available, else localStorage ---------- */
-/* API 網址存在這台裝置（不寫死在程式裡，公開原始碼就不會洩漏你的網址） */
-var API_URL = localStorage.getItem("genledger_apiurl") || "";
+/* 這份是 Q 自己用的：把正本後端網址寫死，任何裝置／桌面 icon 打開都自動連同一份 Sheet，
+   不必再到設定填。每次載入都覆寫掉舊的/錯的 localStorage 值 → 手機殘留的舊網址會自動被修正。
+   （給朋友的公版是另一份檔案，不受影響） */
+var API_URL = "https://script.google.com/macros/s/AKfycbymm0rk6b9Faf3-rF5LqY-svgSzDn8Zs7Zr8aGqY4bknzrF1yUpPXjca2ZZp8ehBbnJ/exec";
+try{ localStorage.setItem("genledger_apiurl", API_URL); }catch(e){}
 var USE_GAS = !!API_URL;
 function apiCall(action,payload,usePost){
   if(usePost){
@@ -1019,7 +1106,232 @@ function saveSettingsFromUI(){
 
 /* ---------- tabs / render ---------- */
 function switchTab(id){var ps=document.querySelectorAll(".page");for(var i=0;i<ps.length;i++)ps[i].classList.toggle("on",ps[i].id===id);var bs=document.querySelectorAll(".tabbar button");for(var j=0;j<bs.length;j++)bs[j].classList.toggle("on",bs[j].getAttribute("data-tab")===id);window.scrollTo(0,0);}
-function renderAll(){populateFilters();renderList();renderSummary();renderCats();renderPayers();renderMethods();renderBudget();renderQuickChips();}
+function renderAll(){populateFilters();renderList();renderSummary();renderCats();renderPayers();renderMethods();renderBudget();renderQuickChips();renderInbox();}
+
+/* ========================================================================
+   外部支出帶入 + 待確認支出匣（收件匣）
+   - ImportedTransaction：統一模型（不管原本來自哪個來源）
+   - SOURCE adapters：InvoiceAdapter / BankAdapter / LinePayAdapter，各自輸出統一格式
+   - 儲存：localStorage（mock 層）；未來換成 Sheet 的 Imported 分頁只要改 ImportStore
+   - 真實 API：只要在對應 adapter 的 pull() 換成 fetch + 對映，其餘流程不用改
+   ======================================================================== */
+var IMPORT_KEY="genledger_imported";
+var inboxFilterSource="", inboxFilterStatus="pending", inboxEditId=null;
+var STATUS_LABEL={pending:"待確認",recorded:"已記帳",ignored:"已忽略",duplicate:"重複",snoozed:"稍後"};
+var SOURCE_META={invoice:{label:"電子發票",icon:"🧾"},bank:{label:"銀行交易",icon:"🏦"},linePay:{label:"LINE Pay",icon:"💚"}};
+
+/* ---- 儲存層（mock：localStorage；之後可換成 gas("getImported")/gas("saveImported")） ---- */
+var ImportStore={
+  all:function(){try{return JSON.parse(localStorage.getItem(IMPORT_KEY)||"[]");}catch(e){return [];}},
+  save:function(l){localStorage.setItem(IMPORT_KEY,JSON.stringify(l));},
+  byId:function(id){return ImportStore.all().filter(function(x){return x.id===id;})[0];},
+  update:function(id,patch){var l=ImportStore.all(),i=l.map(function(x){return x.id;}).indexOf(id);if(i>=0){l[i]=Object.assign(l[i],patch,{updatedAt:Date.now()});ImportStore.save(l);return l[i];}}
+};
+
+/* ---- 建議分類 / 建議帳本（簡單關鍵字啟發；之後可換更聰明的規則或 ML） ---- */
+var CATWORD=[["餐飲","餐|食|飯|麵|咖啡|cafe|starbucks|麥當勞|肯德基|飲|茶|超商|7-?11|全家|便利"],["生活","全聯|家樂福|大潤發|超市|costco|好市多|日用|藥妝|屈臣|康是美"],["交通","捷運|高鐵|台鐵|計程|uber|taxi|停車|加油|油|客運|公車|ubike|悠遊|一卡通"],["購物","購物|百貨|shopee|蝦皮|momo|pchome|博客來|服飾|uniqlo|zara"],["娛樂","電影|影城|ktv|遊戲|steam|netflix|spotify|訂閱|展"],["住宿","飯店|hotel|airbnb|民宿|住宿"],["醫療","醫|診所|藥局|健保|牙"]];
+function guessCategory(text){text=(""+text).toLowerCase();for(var i=0;i<CATWORD.length;i++){if(new RegExp(CATWORD[i][1],"i").test(text)){var c=CATWORD[i][0];return (cfg.categories.indexOf(c)>=0)?c:cfg.categories[0];}}return cfg.categories[0];}
+function guessBook(text,method){text=(""+text).toLowerCase();if(/全聯|家樂福|超市|costco|好市多|日用|水電|房租|繳費|家庭|藥妝/.test(text))return "family";return "personal";}
+
+/* ---- 把任一來源的一列正規化成 ImportedTransaction ---- */
+function mkImported(o){
+  return {
+    id:"imp"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    sourceType:o.sourceType, externalId:""+o.externalId,
+    transactionDate:normDate(o.transactionDate), amount:Math.round((+o.amount||0)*100)/100,
+    currency:o.currency||"TWD", merchantName:o.merchantName||"", rawDescription:o.rawDescription||"",
+    paymentMethod:o.paymentMethod||"", accountName:o.accountName||"",
+    status:"pending",
+    suggestedCategory:o.suggestedCategory||guessCategory((o.merchantName||"")+" "+(o.rawDescription||"")),
+    suggestedBookType:o.suggestedBookType||guessBook((o.merchantName||"")+" "+(o.rawDescription||""),o.paymentMethod),
+    isPossibleDuplicate:false, rawPayload:o.rawPayload||o,
+    createdAt:Date.now(), updatedAt:Date.now(), recordedExpenseId:null
+  };
+}
+
+/* ---- mock 三來源 ---- */
+var MOCK_INVOICE=[
+  {invNum:"AB-12345678",date:shiftYmd(0),total:175,seller:"全家便利商店",detail:"咖啡+御飯糰",card:"信用卡-1234"},
+  {invNum:"AB-12345679",date:shiftYmd(-1),total:1280,seller:"全聯福利中心",detail:"生鮮+日用品",card:"信用卡-1234"},
+  {invNum:"AB-12345680",date:shiftYmd(0),total:95,seller:"路易莎咖啡",detail:"拿鐵",card:"信用卡-1234"}
+];
+var MOCK_BANK=[
+  {txnId:"BNK-0001",date:shiftYmd(-1),amount:1280,desc:"GS PXMART 全聯",acct:"台新數位帳戶",method:"信用卡"},
+  {txnId:"BNK-0002",date:shiftYmd(-3),amount:899,desc:"NETFLIX.COM",acct:"台新數位帳戶",method:"信用卡"},
+  {txnId:"BNK-0003",date:shiftYmd(-4),amount:15000,desc:"房租轉帳",acct:"台新數位帳戶",method:"轉帳"}
+];
+var MOCK_LINEPAY=[
+  {orderId:"LP-9001",date:shiftYmd(0),amount:95,store:"路易莎咖啡 信義店",memo:"拿鐵",wallet:"LINE Pay"},
+  {orderId:"LP-9002",date:shiftYmd(-2),amount:540,store:"foodpanda",memo:"午餐外送",wallet:"LINE Pay Money"}
+];
+
+/* ---- Adapters：每個 pull() 都輸出 ImportedTransaction[]（真實 API 時改這裡） ---- */
+var InvoiceAdapter={type:"invoice",pull:function(){return MOCK_INVOICE.map(function(r){return mkImported({sourceType:"invoice",externalId:r.invNum,transactionDate:r.date,amount:r.total,currency:"TWD",merchantName:r.seller,rawDescription:r.detail,paymentMethod:"信用卡",accountName:r.card,rawPayload:r});});}};
+var BankAdapter={type:"bank",pull:function(){return MOCK_BANK.map(function(r){return mkImported({sourceType:"bank",externalId:r.txnId,transactionDate:r.date,amount:r.amount,currency:"TWD",merchantName:r.desc,rawDescription:r.desc,paymentMethod:r.method,accountName:r.acct,rawPayload:r});});}};
+var LinePayAdapter={type:"linePay",pull:function(){return MOCK_LINEPAY.map(function(r){return mkImported({sourceType:"linePay",externalId:r.orderId,transactionDate:r.date,amount:r.amount,currency:"TWD",merchantName:r.store,rawDescription:r.memo,paymentMethod:"LINE Pay",accountName:r.wallet,rawPayload:r});});}};
+var ADAPTERS={invoice:InvoiceAdapter,bank:BankAdapter,linePay:LinePayAdapter};
+
+/* ---- 去重邏輯 ---- */
+function normName(s){return (""+s).replace(/[\s　、,，.。()（）]/g,"").toLowerCase();}
+function similarName(a,b){a=normName(a);b=normName(b);if(!a||!b)return false;return a===b||a.indexOf(b)>=0||b.indexOf(a)>=0;}
+function dateClose(a,b){if(!a||!b)return false;var da=new Date(a+"T00:00:00"),db=new Date(b+"T00:00:00");return Math.abs((da-db)/86400000)<=1;}
+function looksDuplicate(tx,others){
+  for(var i=0;i<others.length;i++){var o=others[i];if(o.id&&o.id===tx.id)continue;
+    if(o.externalId&&tx.externalId&&o.externalId===tx.externalId&&o.sourceType===tx.sourceType)return true;
+    /* 跨來源同一筆：金額相同 + 日期相近 + 商家相似（付款方式可能不同，例如發票 vs LINE Pay） */
+    if(Math.round(o.amount)===Math.round(tx.amount)&&dateClose(o.transactionDate,tx.transactionDate)&&similarName(o.merchantName,tx.merchantName))return true;
+  }
+  return false;
+}
+/* 已記帳的 expense 也納入比對（避免重複帶入已記過的） */
+function recordedAsCompare(){return state.items.filter(function(e){return e.externalId;}).map(function(e){return {amount:e.amount,transactionDate:e.date,merchantName:e.item,paymentMethod:e.method,externalId:e.externalId,sourceType:e.sourceType};});}
+
+/* ---- 匯入流程 ---- */
+function runImport(types){
+  var store=ImportStore.all();
+  var added=0,skipped=0,dupFlag=0;
+  (types||Object.keys(ADAPTERS)).forEach(function(tp){
+    if(!ADAPTERS[tp])return;
+    ADAPTERS[tp].pull().forEach(function(tx){
+      /* 不可重複匯入：同 sourceType + externalId */
+      var exists=store.some(function(s){return s.sourceType===tx.sourceType&&s.externalId&&s.externalId===tx.externalId;});
+      if(exists){skipped++;return;}
+      tx.isPossibleDuplicate=looksDuplicate(tx,store.concat(recordedAsCompare()));
+      if(tx.isPossibleDuplicate)dupFlag++;
+      store.push(tx);added++;
+    });
+  });
+  ImportStore.save(store);
+  return {added:added,skipped:skipped,dup:dupFlag};
+}
+
+/* ---- 對映付款方式到系統既有選項 ---- */
+function mapMethod(m){m=""+m;
+  if(/line ?pay|行動|電子|wallet|悠遊|一卡通|pay$/i.test(m))return cfg.methods.indexOf("行動支付")>=0?"行動支付":cfg.methods[0];
+  if(/信用卡|卡|card|visa|master/i.test(m))return cfg.methods.indexOf("信用卡")>=0?"信用卡":cfg.methods[0];
+  if(/現金|cash/i.test(m))return cfg.methods.indexOf("現金")>=0?"現金":cfg.methods[0];
+  if(/轉帳|atm|轉/i.test(m))return cfg.methods.indexOf("其他")>=0?"其他":cfg.methods[cfg.methods.length-1];
+  return cfg.methods.indexOf(m)>=0?m:(cfg.methods[cfg.methods.length-1]||"其他");
+}
+
+/* ---- 把一筆 imported 轉成正式 expense（overrides 為編輯後的值） ---- */
+function importToExpense(tx,ov){
+  ov=ov||{};
+  var book=ov.bookType||tx.suggestedBookType||"personal";
+  var kind=(book==="family")?"公用":"自己";
+  var cur=ov.currency||tx.currency||cfg.base, ru=rateFor(cur);
+  var amt=(ov.amount!=null)?ov.amount:tx.amount;
+  var date=normDate(ov.date||tx.transactionDate)||ymd(new Date());
+  var rec={
+    id:"e"+Date.now()+Math.random().toString(36).slice(2,6),
+    date:date, item:(ov.item||tx.merchantName||"未命名"),
+    amount:Math.round(amt*100)/100, currency:cur, base:Math.round(amt*ru*100)/100, rateUsed:ru,
+    payer:ov.payer||cfg.people[0], method:ov.method||mapMethod(tx.paymentMethod),
+    category:ov.category||tx.suggestedCategory||cfg.categories[0], kind:kind,
+    note:(ov.note!=null?ov.note:(tx.rawDescription||"")), ts:Date.now(), receipts:[], trip:"", day:"",
+    /* 外部來源欄位 */
+    bookType:book, sourceType:tx.sourceType, externalId:tx.externalId,
+    importedFromExternal:true, importedTransactionId:tx.id,
+    splitWith:ov.splitWith||"", splitRatio:(ov.splitRatio!=null?ov.splitRatio:"")
+  };
+  state.items.unshift(rec);
+  gas("addEntry",rec).catch(syncErr);
+  ImportStore.update(tx.id,{status:"recorded",recordedExpenseId:rec.id});
+  return rec;
+}
+
+/* ---- 動作 ---- */
+function inboxOneClick(id){var tx=ImportStore.byId(id);if(!tx)return;if(tx.status==="recorded"){toast("這筆已經記帳過了");return;}importToExpense(tx,null);toast("已記帳 ✓");renderAll();}
+function inboxIgnore(id){ImportStore.update(id,{status:"ignored"});toast("已忽略");renderAll();}
+function inboxSnooze(id){ImportStore.update(id,{status:"snoozed"});toast("稍後再處理");renderAll();}
+function inboxMarkDup(id){ImportStore.update(id,{status:"duplicate"});toast("已標記為重複");renderAll();}
+function inboxRestore(id){ImportStore.update(id,{status:"pending"});toast("已還原到待確認");renderAll();}
+
+/* ---- 編輯後記帳 modal ---- */
+function openImpModal(id){
+  var tx=ImportStore.byId(id);if(!tx)return;if(tx.status==="recorded"){toast("這筆已經記帳過了");return;}
+  inboxEditId=id;
+  renderSeg("ie-book",["personal","family"],tx.suggestedBookType||"personal");
+  /* 帳本鈕顯示中文 */
+  var bb=$("ie-book").querySelectorAll("button");for(var i=0;i<bb.length;i++){bb[i].textContent=bb[i].getAttribute("data-v")==="family"?"家庭帳本":"個人帳本";}
+  $("ie-item").value=tx.merchantName||"";
+  $("ie-amount").value=tx.amount;
+  $("ie-date").value=normDate(tx.transactionDate)||ymd(new Date());
+  $("ie-cat").innerHTML=cfg.categories.map(function(c){return "<option"+(c===tx.suggestedCategory?" selected":"")+">"+esc(c)+"</option>";}).join("");
+  var mm=mapMethod(tx.paymentMethod);
+  $("ie-method").innerHTML=cfg.methods.map(function(c){return "<option"+(c===mm?" selected":"")+">"+esc(c)+"</option>";}).join("");
+  $("ie-note").value=tx.rawDescription||"";
+  $("ie-split").checked=(tx.suggestedBookType==="family");
+  $("ie-splitbox").style.display=$("ie-split").checked?"block":"none";
+  $("ie-splitwith").innerHTML=cfg.people.map(function(p){return "<option>"+esc(p)+"</option>";}).join("");
+  $("ie-ratio").value=50;
+  $("impModal").classList.add("show");$("impModalBack").classList.add("show");
+}
+function closeImpModal(){$("impModal").classList.remove("show");$("impModalBack").classList.remove("show");inboxEditId=null;}
+function saveImpModal(){
+  var tx=ImportStore.byId(inboxEditId);if(!tx)return;
+  var amt=parseFloat($("ie-amount").value);if(!(amt>0)){toast("金額不正確");return;}
+  var split=$("ie-split").checked;
+  importToExpense(tx,{
+    bookType:segValue("ie-book"), item:$("ie-item").value.trim()||tx.merchantName,
+    amount:amt, date:$("ie-date").value, category:$("ie-cat").value, method:$("ie-method").value,
+    note:$("ie-note").value.trim(),
+    splitWith:split?$("ie-splitwith").value:"", splitRatio:split?(+$("ie-ratio").value||50):""
+  });
+  closeImpModal();toast("已記帳 ✓");renderAll();
+}
+
+/* ---- 收件匣統計與渲染 ---- */
+function inboxCounts(){var a=ImportStore.all();return {
+  pending:a.filter(function(x){return x.status==="pending";}).length,
+  dup:a.filter(function(x){return x.isPossibleDuplicate&&x.status==="pending";}).length,
+  recent:a.filter(function(x){return Date.now()-x.createdAt<2*864e5;}).length
+};}
+function updateInboxBadge(){var c=inboxCounts().pending,b=$("inboxBadge");if(b){b.textContent=c;b.style.display=c?"inline-block":"none";}}
+function renderInbox(){
+  updateInboxBadge();
+  var c=inboxCounts();
+  $("inboxSummary").innerHTML="最近帶入 <b>"+c.recent+"</b> 筆 ·　待確認 <b>"+c.pending+"</b> ·　疑似重複 <b>"+c.dup+"</b>";
+  var rows=ImportStore.all().filter(function(x){
+    return (!inboxFilterSource||x.sourceType===inboxFilterSource)&&(inboxFilterStatus==="all"?true:x.status===inboxFilterStatus);
+  });
+  rows.sort(function(a,b){return (a.transactionDate<b.transactionDate?1:a.transactionDate>b.transactionDate?-1:b.createdAt-a.createdAt);});
+  var box=$("inboxList");
+  if(!rows.length){box.innerHTML="<div class='empty'>"+(inboxFilterStatus==="pending"?"沒有待確認的支出 🎉<br>按上面「帶入外部支出」試試":"這個篩選沒有資料")+"</div>";return;}
+  box.innerHTML=rows.map(function(x){
+    var sm=SOURCE_META[x.sourceType]||{label:x.sourceType,icon:"💳"};
+    var p=(""+x.transactionDate).split("-"), dchip=p.length>=3?(+p[1])+"/"+(+p[2]):x.transactionDate;
+    var bookCls=x.suggestedBookType==="family"?"family":"personal", bookTxt=x.suggestedBookType==="family"?"建議：家庭":"建議：個人";
+    var actions;
+    if(x.status==="pending"){
+      actions="<div class='imp-actions'>"+
+        "<button class='primary' onclick=\"inboxOneClick('"+x.id+"')\">⚡ 一鍵記帳</button>"+
+        "<button onclick=\"openImpModal('"+x.id+"')\">✏️ 編輯後記帳</button>"+
+        "<button class='ghost' onclick=\"inboxSnooze('"+x.id+"')\">⏰ 稍後</button>"+
+        "<button class='ghost' onclick=\"inboxIgnore('"+x.id+"')\">🚫 忽略</button>"+
+        "<button class='warn' onclick=\"inboxMarkDup('"+x.id+"')\">🔁 標記重複</button>"+
+      "</div>";
+    }else{
+      var pillTxt=STATUS_LABEL[x.status]||x.status;
+      actions="<div class='imp-actions'><span class='status-pill "+x.status+"'>"+pillTxt+"</span>"+
+        (x.status!=="recorded"?"<button class='ghost' onclick=\"inboxRestore('"+x.id+"')\">↩︎ 還原</button>":"")+"</div>";
+    }
+    return "<div class='imp-card"+(x.isPossibleDuplicate&&x.status==="pending"?" dup":"")+"'>"+
+      "<div class='imp-top'>"+
+        "<div class='imp-ico'>"+sm.icon+"</div>"+
+        "<div class='imp-mid'><div class='imp-nm'>"+esc(x.merchantName||"(無商家)")+"</div>"+
+          "<div class='imp-sub'>"+sm.label+" · "+esc(x.accountName||x.paymentMethod||"")+(x.rawDescription?" · "+esc(x.rawDescription):"")+"</div></div>"+
+        "<div class='imp-amt'>"+sym(x.currency)+Math.round(x.amount).toLocaleString("en-US")+"</div>"+
+      "</div>"+
+      "<div class='imp-meta'>"+
+        "<span class='chip'>"+dchip+"</span>"+
+        "<span class='chip'>"+(catIcon(x.suggestedCategory)?catIcon(x.suggestedCategory)+" ":"")+esc(x.suggestedCategory)+"</span>"+
+        "<span class='book-chip "+bookCls+"'>"+bookTxt+"</span>"+
+        (x.isPossibleDuplicate?"<span class='dup-chip'>⚠️ 疑似重複</span>":"")+
+      "</div>"+actions+
+    "</div>";
+  }).join("");
+}
 
 /* ---------- init ---------- */
 function applyConfig(loaded){
@@ -1070,6 +1382,16 @@ function init(){
   $("tripModalBack").addEventListener("click",closeTripModal);
   $("tripDeleteBtn").addEventListener("click",function(){if(tripEditId)deleteTrip(tripEditId);});
   var tb=document.querySelectorAll(".tabbar button");for(var i=0;i<tb.length;i++)tb[i].addEventListener("click",function(){switchTab(this.getAttribute("data-tab"));});
+  /* 收件匣 */
+  $("importBtn").addEventListener("click",function(){var r=runImport();toast(r.added?("帶入 "+r.added+" 筆"+(r.skipped?"（"+r.skipped+" 筆已存在略過）":"")):"沒有新資料（都帶過了）");inboxFilterStatus="pending";$("inboxStatus").value="pending";renderInbox();});
+  $("inboxSrc").addEventListener("click",function(e){var b=e.target.closest("button[data-s]");if(!b)return;inboxFilterSource=b.getAttribute("data-s");var bs=$("inboxSrc").querySelectorAll("button");for(var i=0;i<bs.length;i++)bs[i].classList.toggle("on",bs[i]===b);renderInbox();});
+  $("inboxStatus").addEventListener("change",function(){inboxFilterStatus=this.value;renderInbox();});
+  $("ie-split").addEventListener("change",function(){$("ie-splitbox").style.display=this.checked?"block":"none";});
+  $("ieSaveBtn").addEventListener("click",saveImpModal);
+  $("ieCancelBtn").addEventListener("click",closeImpModal);
+  $("impModalBack").addEventListener("click",closeImpModal);
+  /* 第一次使用：自動帶入 mock，讓收件匣立刻有東西可看（之後不重複） */
+  if(!localStorage.getItem("genledger_imported_seeded")){runImport();localStorage.setItem("genledger_imported_seeded","1");}
   /* 先用預設值把畫面立刻畫好（避免載入時的空白閃爍），雲端資料回來後 boot 會再刷新一次 */
   renderFormSegs();renderTripBar();updateModeUI();clearForm();renderAll();
   boot();
