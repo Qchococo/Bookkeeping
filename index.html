@@ -665,7 +665,7 @@ function renderFormSegs(){
   renderSeg("seg-payer",cfg.people,cfg.people[0]);
   renderSeg("seg-method",cfg.methods,cfg.methods[0]);
   renderCatSeg(cfg.categories[0]);
-  renderSeg("seg-kind",["公用","自己"],"公用");
+  renderSeg("seg-kind",["公用","自己"],"自己");
 }
 
 /* ---------- amount field + keypad ---------- */
@@ -757,7 +757,7 @@ function clearForm(){
   var t=activeTripObj();
   $("f-item").value="";$("f-amount").value="";$("f-note").value="";$("f-date").value=ymd(new Date());
   setSeg("seg-cur",(t&&t.cur)?t.cur:cfg.currencies[0]);
-  setSeg("seg-payer",cfg.people[0]);setSeg("seg-method",cfg.methods[0]);setSeg("seg-cat",cfg.categories[0]);setSeg("seg-kind","公用");
+  setSeg("seg-payer",cfg.people[0]);setSeg("seg-method",cfg.methods[0]);setSeg("seg-cat",cfg.categories[0]);setSeg("seg-kind","自己");
   if(t){renderSeg("seg-day",dayValues(t),"Day1");var ad=autoDay($("f-date").value,t);if(ad)setSeg("seg-day",ad);}
   updateAmtCalc();closeKeypad();state.editId=null;$("saveBtn").textContent="＋ 新增這筆";$("cancelEditBtn").style.display="none";$("deleteEntryBtn").style.display="none";
   pendingPhotos=[];formReceipts=[];renderThumbs();syncDateQuick();
@@ -1129,8 +1129,19 @@ var ImportStore={
 };
 
 /* ---- 建議分類 / 建議帳本（簡單關鍵字啟發；之後可換更聰明的規則或 ML） ---- */
-var CATWORD=[["餐飲","餐|食|飯|麵|咖啡|cafe|starbucks|麥當勞|肯德基|飲|茶|超商|7-?11|全家|便利"],["生活","全聯|家樂福|大潤發|超市|costco|好市多|日用|藥妝|屈臣|康是美"],["交通","捷運|高鐵|台鐵|計程|uber|taxi|停車|加油|油|客運|公車|ubike|悠遊|一卡通"],["購物","購物|百貨|shopee|蝦皮|momo|pchome|博客來|服飾|uniqlo|zara"],["娛樂","電影|影城|ktv|遊戲|steam|netflix|spotify|訂閱|展"],["住宿","飯店|hotel|airbnb|民宿|住宿"],["醫療","醫|診所|藥局|健保|牙"]];
-function guessCategory(text){text=(""+text).toLowerCase();for(var i=0;i<CATWORD.length;i++){if(new RegExp(CATWORD[i][1],"i").test(text)){var c=CATWORD[i][0];return (cfg.categories.indexOf(c)>=0)?c:cfg.categories[0];}}return cfg.categories[0];}
+/* 順序＝優先序：越前面越具體，「餐飲」這種大網子放最後掃。
+   認不出來一律回「其他」，不再掉進第一個類別（以前全部變餐飲就是這個原因）。 */
+var CATWORD=[
+  ["醫療","醫院|診所|藥局|藥師|健保|掛號|看診|處方|牙醫|眼科|皮膚科"],
+  ["住宿","飯店|hotel|airbnb|民宿|住宿|旅館|青旅"],
+  ["交通","捷運|高鐵|台鐵|火車|計程|uber(?!\\s?eats)|taxi|停車|加油|中油|油錢|客運|公車|ubike|悠遊卡|一卡通|icash儲值|機票|航空|租車|過路費"],
+  ["娛樂","電影|影城|ktv|遊戲|steam|netflix|spotify|disney|訂閱|展覽|演唱會|門票"],
+  ["生活","全聯|家樂福|大潤發|超市|costco|好市多|日用|藥妝|屈臣|康是美|寶雅|美妝|保養|化妝|眼藥水|藥膏|感冒藥|維他命|洗衣|理髮|剪髮|美容|水電|電費|水費|瓦斯|電信|手機費|網路費"],
+  ["購物","購物|百貨|shopee|蝦皮|momo|pchome|博客來|amazon|淘寶|服飾|衣服|鞋|uniqlo|zara|3c|電器|家電"],
+  ["餐飲","早餐|午餐|晚餐|宵夜|餐|飯|麵|食|咖啡|cafe|starbucks|星巴克|路易莎|麥當勞|肯德基|摩斯|手搖|飲料|奶茶|茶|甜點|蛋糕|火鍋|燒肉|壽司|拉麵|便當|小吃|夜市|超商|7-?11|全家|便利|foodpanda|ubereats|外送"]
+];
+function fallbackCat(){return cfg.categories.indexOf("其他")>=0?"其他":cfg.categories[cfg.categories.length-1];}
+function guessCategory(text){text=(""+text).toLowerCase();for(var i=0;i<CATWORD.length;i++){if(new RegExp(CATWORD[i][1],"i").test(text)){var c=CATWORD[i][0];if(cfg.categories.indexOf(c)>=0)return c;if(c==="醫療"&&cfg.categories.indexOf("生活")>=0)return "生活";return fallbackCat();}}return fallbackCat();}
 function guessBook(text,method){text=(""+text).toLowerCase();if(/全聯|家樂福|超市|costco|好市多|日用|水電|房租|繳費|家庭|藥妝/.test(text))return "family";return "personal";}
 
 /* ---- 把任一來源的一列正規化成 ImportedTransaction ---- */
@@ -1227,7 +1238,7 @@ function importToExpense(tx,ov){
     date:date, item:(ov.item||tx.merchantName||"未命名"),
     amount:Math.round(amt*100)/100, currency:cur, base:Math.round(amt*ru*100)/100, rateUsed:ru,
     payer:ov.payer||cfg.people[0], method:ov.method||mapMethod(tx.paymentMethod),
-    category:ov.category||tx.suggestedCategory||cfg.categories[0], kind:kind,
+    category:ov.category||tx.suggestedCategory||fallbackCat(), kind:kind,
     note:(ov.note!=null?ov.note:(tx.rawDescription||"")), ts:Date.now(), receipts:[], trip:"", day:"",
     /* 外部來源欄位 */
     bookType:book, sourceType:tx.sourceType, externalId:tx.externalId,
