@@ -155,6 +155,31 @@ function saveConfig(cfg) {
   return true;
 }
 
+/***** 一次性：修正 LINE bot 分錯類的 6 筆（2026-08-21）*****
+ * 在 Apps Script 編輯器上方函式下拉選 fixCategories_0821 → 按 Run，跑一次即可。
+ * 只改 category 欄，其他欄位不動；已經改過的會自動跳過。
+ ********************************************/
+function fixCategories_0821() {
+  var FIX = {
+    'e1785235904571jzfz': '購物', // 日幣 sabon
+    'e17856644244923zs8': '購物', // 保溫瓶 薫
+    'e17860052932821dnt': '生活', // 貢品
+    'e1786153800730adaf': '美容', // 髮基因
+    'e1786426091331uvxc': '生活', // 國民年金
+    'e1786521540040d680': '購物'  // 美妝（眼藥水
+  };
+  var e = ensure_().e;
+  var vals = e.getDataRange().getValues();
+  var head = vals[0], idCol = head.indexOf('id'), catCol = head.indexOf('category');
+  var n = 0;
+  for (var i = 1; i < vals.length; i++) {
+    var want = FIX[vals[i][idCol]];
+    if (want && vals[i][catCol] !== want) { e.getRange(i + 1, catCol + 1).setValue(want); n++; }
+  }
+  Logger.log('已修正 ' + n + ' 筆');
+  return n;
+}
+
 /***** 一次性：把預設值寫進 Sheet 設定 *****
  * 在 Apps Script 編輯器上方函式下拉選 setupDefaults → 按 Run，跑一次即可。
  * 會設定付款人 = Q,J，以及常用項目清單；其他設定（幣別、類別…）保留原本的。
